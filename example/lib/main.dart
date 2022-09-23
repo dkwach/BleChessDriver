@@ -1,12 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/services.dart';
-import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:flutter/material.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:externalDevice/PeripheralCommunicationClient.dart';
-import 'package:externalDevice/Peripheral.dart';
-
+import 'BluetoothConnection.dart';
 
 
 void main() {
@@ -34,113 +30,21 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  Peripheral connectedBoard;
-
-  Uuid _serviceId = Uuid.parse("f5351050-b2c9-11ec-a0c0-b3bc53b08d33");
-  Uuid _characteristicReadId = Uuid.parse("f535147e-b2c9-11ec-a0c2-8bbd706ec4e6");
-  Uuid _characteristicWriteId = Uuid.parse("f53513ca-b2c9-11ec-a0c1-639b8957db99");
-  Duration scanDuration = Duration(seconds: 10);
-  List<DiscoveredDevice> devices = [];
-  bool scanning = false;
   String move;
   String lastCentralMove;
+  BleConnection ble;
 
-  final flutterReactiveBle = FlutterReactiveBle();
-  StreamSubscription<ConnectionStateUpdate> connection;
-
-  Future<void> reqPermission() async {
-    await Permission.locationWhenInUse.request();
-    await Permission.bluetoothConnect.request();
-    await Permission.bluetoothScan.request();
-  }
-
-  Future<void> listDevices() async {
-    setState(() {
-      scanning = true;
-      devices = [];
-    });
-
-    await reqPermission();
-
-    // Listen to scan results
-    final sub = flutterReactiveBle.scanForDevices(withServices: [_serviceId], scanMode: ScanMode.balanced).listen((device) async {
-      if (devices.indexWhere((e) => e.id == device.id) > -1) return;
-
-      setState(() {
-        devices.add(device);
-      });
-    }, onError: (e) {
-      print("Exception: " + e);
-    });
-
-    // Stop scanning
-    Future.delayed(scanDuration, () {
-      sub.cancel();
-      setState(() {
-        scanning = false;
-      });
-    });
-  }
-
-  void connect(DiscoveredDevice device) async {
-    connection = flutterReactiveBle
-        .connectToDevice(
-      id: device.id,
-      connectionTimeout: const Duration(seconds: 2),
-    ).listen((connectionState) async {
-      if (connectionState.connectionState == DeviceConnectionState.disconnected) {
-        disconnect();
-        return;
-      }
-
-      if (connectionState.connectionState != DeviceConnectionState.connected) {
-        return;
-      }
-
-      final read = QualifiedCharacteristic(
-          serviceId: _serviceId,
-          characteristicId: _characteristicReadId,
-          deviceId: device.id);
-      final write = QualifiedCharacteristic(
-          serviceId: _serviceId,
-          characteristicId: _characteristicWriteId,
-          deviceId: device.id);
-
-      PeripheralCommunicationClient client =
-      PeripheralCommunicationClient((v) => flutterReactiveBle.writeCharacteristicWithResponse(write, value: v));
-      flutterReactiveBle
-          .subscribeToCharacteristic(read)
-          .listen(client.handleReceive);
-
-      Peripheral nBoard = new Peripheral();
-      nBoard.init(client);
-
-      setState(() {
-        connectedBoard = nBoard;
-      });
-    }, onError: (Object e) {
-      print("Exception: " + e);
-    });
-  }
-
-  void disconnect() async {
-    connection.cancel();
-    setState(() {
-      connectedBoard = null;
-    });
+  _MyHomePageState() {
+    ble = new BleConnection(setState); // todo passing setState looks bad -find better way
   }
 
   void onRequestNewGame() {
-    connectedBoard.onNewGame("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-  }
-
-  void onMoveEditSubmitted(String str) {
-    move = str;
+    ble.board.onNewGame("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
   }
 
   void onNewMoveRequest() {
     lastCentralMove = move;
-    connectedBoard.onNewCentralMove(move);
+    ble.board.onNewCentralMove(move);
   }
 
 
@@ -150,7 +54,7 @@ class _MyHomePageState extends State<MyHomePage> {
         SizedBox(height: 25),
         Center(
             child: StreamBuilder(
-                stream: connectedBoard?.getBoardMoves(),
+                stream: ble.board?.getBoardMoves(),
                 builder:
                     (context, AsyncSnapshot<String> snapshot) {
                   if (!snapshot.hasData) return Text("");
@@ -160,14 +64,14 @@ class _MyHomePageState extends State<MyHomePage> {
                   String receivedMoveDst = receivedMove.substring(2, 4);
                   String reversedReceivedMove = receivedMoveDst + receivedMoveSrc;
                   bool isApproved = lastCentralMove != receivedMove && lastCentralMove != reversedReceivedMove;
-                  connectedBoard.onMoveJudgement(isApproved);
-                  return Text("Move from peripheral: " + receivedMove);
+                  ble.board.onMoveJudgement(isApproved);
+                  return Text(isApproved ? "Move from peripheral: " + receivedMove: "");
                 })),
         TextButton(
             onPressed: onRequestNewGame,
             child: Text("Request New game")),
         TextField(
-            onChanged: onMoveEditSubmitted,
+            onChanged: (String str) => move = str,
             inputFormatters: [FilteringTextInputFormatter.allow(RegExp("[a-h1-8kqbr]"))],
             decoration: InputDecoration(
               border: OutlineInputBorder(),
@@ -188,19 +92,19 @@ class _MyHomePageState extends State<MyHomePage> {
       children: [
         SizedBox(height: 25),
         Center(
-            child: scanning
+            child: ble.scanning
                 ? CircularProgressIndicator()
                 : TextButton(
               child: Text("List Devices"),
-              onPressed: listDevices,
+              onPressed: ble.listDevices,
             )),
         Flexible(
             child: ListView.builder(
-                itemCount: devices.length,
+                itemCount: ble.devices.length,
                 itemBuilder: (context, index) => ListTile(
-                  title: Text(devices[index].name),
-                  subtitle: Text(devices[index].id.toString()),
-                  onTap: () => connect(devices[index]),
+                  title: Text(ble.devices[index].name),
+                  subtitle: Text(ble.devices[index].id.toString()),
+                  onTap: () => ble.connect(ble.devices[index]),
                 ))),
         SizedBox(height: 24)
       ],
@@ -209,7 +113,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    Widget content = connectedBoard == null
+    Widget content = ble.board == null
         ? deviceList()
         : Column(
       children: [

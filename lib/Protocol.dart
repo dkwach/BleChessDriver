@@ -21,19 +21,13 @@ class Cecp {
   CecpFeatures _features = new CecpFeatures();
   String _lastPeripheralMove;
   _State _state;
-  bool _isUserTurn = true; // todo has to be provided from game
+  bool isUserTurn = true; // todo fix this later - should be taken from game
   Function _onNewPeripheralMove;
 
   Cecp(this._client, this._onNewPeripheralMove);
 
   void init() {
     transitionTo(new Init());
-  }
-
-  bool isUserTurn() {
-    bool res = _isUserTurn;
-    _isUserTurn = !_isUserTurn;
-    return res;
   }
 
   void transitionTo(_State nextState) {
@@ -58,7 +52,10 @@ class Cecp {
     _state.onReceiveMsgFromPeripheral(msg);
   }
   void onNewGame(String fen) { _state.onNewGame(fen); }
-  void onNewCentralMove(String move) { _state.onNewCentralMove(move); }
+  void onNewCentralMove(String move) {
+    _state.onNewCentralMove(move);
+    isUserTurn = true; // todo fix this later - should be taken from game
+  }
   void onMoveJudgement(bool isAccepted) { _state.onMoveJudgement(isAccepted); }
 
   void setLastPeripheralMove(String move) {
@@ -96,7 +93,7 @@ class _State{
     if (_context.getFeatures().setboard) {
       _context.send("setboard " + fen);
       _context.transitionTo(
-          _context.isUserTurn() ? new AskAndWaitUserMove() : new WaitApiMove());
+          _context.isUserTurn ? new AskAndWaitUserMove() : new WaitApiMove());
     }
     else {
       print("Not implemented");
@@ -167,9 +164,7 @@ class WaitUserMove extends _State {
   void onNewCentralMove(String move) {
     _context.send("force");
     _context.send(move);
-    _context.transitionTo(_context.isUserTurn()
-        ? new AskAndWaitUserMove()
-        : new ForcedWaitApiMove());
+    _context.transitionTo(_context.isUserTurn ? new AskAndWaitUserMove() : new ForcedWaitApiMove());
   }
 }
 
@@ -190,18 +185,19 @@ class VerifyUserMove extends _State {
       _context.send('force');
       _context.send(move);
       _context.transitionTo(
-          _context.isUserTurn() ? new AskAndWaitUserMove() : new ForcedWaitApiMove());
+          _context.isUserTurn ? new AskAndWaitUserMove() : new ForcedWaitApiMove());
     }
     else {
       _context.transitionTo(
-          _context.isUserTurn() ? new AskAndWaitUserMove() : new WaitApiMove());
+          _context.isUserTurn ? new AskAndWaitUserMove() : new WaitApiMove());
     }
   }
 
   void onMoveJudgement(bool isAccepted){
     if (isAccepted) {
+      _context.isUserTurn = false; // todo fix this later - should be taken from game
       _context.transitionTo(
-          _context.isUserTurn() ? new AskAndWaitUserMove() : new WaitApiMove());
+          _context.isUserTurn ? new AskAndWaitUserMove() : new WaitApiMove());
     }
     else {
       _sendMoveRejectedToDevice("");
