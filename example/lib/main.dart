@@ -40,11 +40,13 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void onRequestNewGame() {
     ble.board.onNewGame("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    ble.board.onTurnChanged(true); // todo in real game we have to have better logic for handling turns
   }
 
   void onNewMoveRequest() {
     lastCentralMove = move;
     ble.board.onNewCentralMove(move);
+    ble.board.onTurnChanged(true);
   }
 
 
@@ -64,6 +66,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   String receivedMoveDst = receivedMove.substring(2, 4);
                   String reversedReceivedMove = receivedMoveDst + receivedMoveSrc;
                   bool isApproved = lastCentralMove != receivedMove && lastCentralMove != reversedReceivedMove;
+                  ble.board.onTurnChanged(false);
                   ble.board.onMoveJudgement(isApproved);
                   return Text(isApproved ? "Move from peripheral: " + receivedMove: "");
                 })),

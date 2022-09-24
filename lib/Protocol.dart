@@ -54,7 +54,6 @@ class Cecp {
   void onNewGame(String fen) { _state.onNewGame(fen); }
   void onNewCentralMove(String move) {
     _state.onNewCentralMove(move);
-    isUserTurn = true; // todo fix this later - should be taken from game
   }
   void onMoveJudgement(bool isAccepted) { _state.onMoveJudgement(isAccepted); }
 
@@ -195,7 +194,6 @@ class VerifyUserMove extends _State {
 
   void onMoveJudgement(bool isAccepted){
     if (isAccepted) {
-      _context.isUserTurn = false; // todo fix this later - should be taken from game
       _context.transitionTo(
           _context.isUserTurn ? new AskAndWaitUserMove() : new WaitApiMove());
     }
