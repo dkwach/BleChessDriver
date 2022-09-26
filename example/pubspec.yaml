@@ -23,7 +23,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  externalDevice:
+  universal_chess_driver:
     path: ../
   flutter_reactive_ble: ^5.0.2
   flutter_stateless_chessboard: ^0.0.6
