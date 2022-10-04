@@ -1,5 +1,4 @@
-import 'package:externalDevice/PeripheralCommunicationClient.dart';
-
+import 'package:universal_chess_driver/UniversalCommunicationClient.dart';
 
 class CecpFeatures {
   bool setboard = false;
@@ -17,7 +16,7 @@ class CecpFeatures {
 }
 
 class Cecp {
-  final PeripheralCommunicationClient _client;
+  final UniversalCommunicationClient _client;
   CecpFeatures _features = new CecpFeatures();
   String _lastPeripheralMove;
   _State _state;
@@ -51,15 +50,23 @@ class Cecp {
     print("peripheral: " + msg);
     _state.onReceiveMsgFromPeripheral(msg);
   }
-  void onNewGame(String fen) { _state.onNewGame(fen); }
+
+  void onNewGame(String fen) {
+    _state.onNewGame(fen);
+  }
+
   void onNewCentralMove(String move) {
     _state.onNewCentralMove(move);
   }
-  void onMoveJudgement(bool isAccepted) { _state.onMoveJudgement(isAccepted); }
+
+  void onMoveJudgement(bool isAccepted) {
+    _state.onMoveJudgement(isAccepted);
+  }
 
   void setLastPeripheralMove(String move) {
     _lastPeripheralMove = move;
   }
+
   String getLastPeripheralMove() {
     return _lastPeripheralMove;
   }
@@ -73,7 +80,7 @@ class Cecp {
   }
 }
 
-class _State{
+class _State {
   Cecp _context;
 
   void setContext(Cecp context) {
@@ -87,18 +94,17 @@ class _State{
       print(msg);
     }
   }
+
   void onNewGame(String fen) {
     _context.send("new");
     if (_context.getFeatures().setboard) {
       _context.send("setboard " + fen);
       _context.transitionTo(
           _context.isUserTurn ? new AskAndWaitUserMove() : new WaitApiMove());
-    }
-    else {
+    } else {
       print("Not implemented");
       throw Exception('Not implemented"');
     }
-
   }
 
   void onNewCentralMove(String move) {}
@@ -123,8 +129,7 @@ class Init extends _State {
   void _handleFeature(String name, String value) {
     if (_context.getFeatures().setFeature(name, value)) {
       _context.send('accepted ' + name);
-    }
-    else {
+    } else {
       _context.send('rejected ' + name);
     }
   }
@@ -147,14 +152,12 @@ class ForcedWaitApiMove extends _State {
 }
 
 class WaitUserMove extends _State {
-
   @override
   void onReceiveMsgFromPeripheral(String msg) {
     if (msg.startsWith('move')) {
       _context.setLastPeripheralMove(_context.getCommandParams(msg));
       _context.transitionTo(new VerifyUserMove());
-    }
-    else {
+    } else {
       super.onReceiveMsgFromPeripheral(msg);
     }
   }
@@ -163,7 +166,9 @@ class WaitUserMove extends _State {
   void onNewCentralMove(String move) {
     _context.send("force");
     _context.send(move);
-    _context.transitionTo(_context.isUserTurn ? new AskAndWaitUserMove() : new ForcedWaitApiMove());
+    _context.transitionTo(_context.isUserTurn
+        ? new AskAndWaitUserMove()
+        : new ForcedWaitApiMove());
   }
 }
 
@@ -183,21 +188,20 @@ class VerifyUserMove extends _State {
       _sendMoveRejectedToDevice('without promotion');
       _context.send('force');
       _context.send(move);
-      _context.transitionTo(
-          _context.isUserTurn ? new AskAndWaitUserMove() : new ForcedWaitApiMove());
-    }
-    else {
+      _context.transitionTo(_context.isUserTurn
+          ? new AskAndWaitUserMove()
+          : new ForcedWaitApiMove());
+    } else {
       _context.transitionTo(
           _context.isUserTurn ? new AskAndWaitUserMove() : new WaitApiMove());
     }
   }
 
-  void onMoveJudgement(bool isAccepted){
+  void onMoveJudgement(bool isAccepted) {
     if (isAccepted) {
       _context.transitionTo(
           _context.isUserTurn ? new AskAndWaitUserMove() : new WaitApiMove());
-    }
-    else {
+    } else {
       _sendMoveRejectedToDevice("");
       _context.transitionTo(new WaitUserMove());
     }
@@ -211,4 +215,3 @@ class VerifyUserMove extends _State {
     _context.send("Illegal move: " + _context.getLastPeripheralMove() + reason);
   }
 }
-
