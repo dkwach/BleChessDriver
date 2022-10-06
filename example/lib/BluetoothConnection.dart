@@ -3,8 +3,7 @@ import 'dart:async';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-import 'package:universal_chess_driver/PeripheralCommunicationClient.dart';
-import 'package:universal_chess_driver/Peripheral.dart';
+import 'package:universal_chess_driver/UniversalPeripheral.dart';
 
 typedef VoidCallback = void Function();
 
@@ -15,12 +14,12 @@ class BleConnection {
   final _flutterReactiveBle = FlutterReactiveBle();
   Duration _scanDuration = Duration(seconds: 10);
   StreamSubscription<ConnectionStateUpdate> _connection;
-  Peripheral _board;
+  UniversalPeripheral _board;
   void Function(VoidCallback) _notifyChanges;
 
   BleConnection(this._notifyChanges);
 
-  Peripheral get board {
+  UniversalPeripheral get board {
     return _board;
   }
 
@@ -39,7 +38,9 @@ class BleConnection {
     await reqPermission();
 
     // Listen to scan results
-    final sub = _flutterReactiveBle.scanForDevices(withServices: [ChessBleUUID.srv], scanMode: ScanMode.balanced).listen((device) async {
+    final sub = _flutterReactiveBle.scanForDevices(
+        withServices: [Uuid.parse(UniversalCommunicationClient.srv)],
+        scanMode: ScanMode.balanced).listen((device) async {
       if (devices.indexWhere((e) => e.id == device.id) > -1) return;
 
       _notifyChanges(() {
@@ -63,8 +64,10 @@ class BleConnection {
         .connectToDevice(
       id: device.id,
       connectionTimeout: const Duration(seconds: 2),
-    ).listen((connectionState) async {
-      if (connectionState.connectionState == DeviceConnectionState.disconnected) {
+    )
+        .listen((connectionState) async {
+      if (connectionState.connectionState ==
+          DeviceConnectionState.disconnected) {
         disconnect();
         return;
       }
@@ -89,23 +92,23 @@ class BleConnection {
     });
   }
 
-  Peripheral createBoard(DiscoveredDevice device) {
+  UniversalPeripheral createBoard(DiscoveredDevice device) {
     final read = QualifiedCharacteristic(
-        serviceId: ChessBleUUID.srv,
-        characteristicId: ChessBleUUID.rxCh,
+        serviceId: Uuid.parse(UniversalCommunicationClient.srv),
+        characteristicId: Uuid.parse(UniversalCommunicationClient.rxCh),
         deviceId: device.id);
     final write = QualifiedCharacteristic(
-        serviceId: ChessBleUUID.srv,
-        characteristicId: ChessBleUUID.txCh,
+        serviceId: Uuid.parse(UniversalCommunicationClient.srv),
+        characteristicId: Uuid.parse(UniversalCommunicationClient.txCh),
         deviceId: device.id);
 
-    PeripheralCommunicationClient client =
-    PeripheralCommunicationClient((v) => _flutterReactiveBle.writeCharacteristicWithResponse(write, value: v));
+    UniversalCommunicationClient client = UniversalCommunicationClient((v) =>
+        _flutterReactiveBle.writeCharacteristicWithResponse(write, value: v));
     _flutterReactiveBle
         .subscribeToCharacteristic(read)
         .listen(client.handleReceive);
 
-    Peripheral board = new Peripheral();
+    UniversalPeripheral board = new UniversalPeripheral();
     board.init(client);
 
     return board;

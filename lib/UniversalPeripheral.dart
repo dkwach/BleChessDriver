@@ -1,22 +1,25 @@
 import 'dart:async';
-import 'package:externalDevice/PeripheralCommunicationClient.dart';
-import 'package:externalDevice/Protocol.dart';
+import 'package:universal_chess_driver/UniversalCommunicationClient.dart';
+import 'package:universal_chess_driver/Protocol.dart';
 
-class Peripheral {
-  
-  PeripheralCommunicationClient _client;
+export 'package:universal_chess_driver/UniversalCommunicationClient.dart';
+
+class UniversalPeripheral {
+  UniversalCommunicationClient _client;
   StreamController _moveStreamController;
   Stream<String> _moveStream;
   Cecp _protocol;
 
-  Peripheral();
+  UniversalPeripheral();
 
-  void init(PeripheralCommunicationClient client) {
+  void init(UniversalCommunicationClient client) {
     _client = client;
     _client.receiveStream.listen(_handleInputStream);
     _moveStreamController = new StreamController<String>();
     _moveStream = _moveStreamController.stream.asBroadcastStream();
-    _protocol = new Cecp(_client, (String move){_moveStreamController.add(move);});
+    _protocol = new Cecp(_client, (String move) {
+      _moveStreamController.add(move);
+    });
     _protocol.init();
   }
 
