@@ -28,7 +28,7 @@ class UniversalPeripheral {
   // (e.g. based on hall sensors) FEN contains "?" characteres
   // indicating piece ocupancy on position
   String getState() {
-    throw new NotImplementedException("preview not supported");
+    throw new UnimplementedError("preview not supported");
   }
   
   // stream of UCI moves, which should be consumed by app
