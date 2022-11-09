@@ -23,6 +23,14 @@ class UniversalPeripheral {
     _protocol.init();
   }
 
+  // returns extened FEN, which indicate board state
+  // for devices, which not supports piece recognition
+  // (e.g. based on hall sensors) FEN contains "?" characteres
+  // indicating piece ocupancy on position
+  String getState() {
+    throw new UnimplementedError("preview not supported");
+  }
+  
   // stream of UCI moves, which should be consumed by app
   // remember to accept or reject moves (see bellow)
   Stream<String> getBoardMoves() {
