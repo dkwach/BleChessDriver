@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'BluetoothConnection.dart';
 
 
@@ -31,26 +32,62 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   String move;
-  String lastCentralMove;
+  String lastPeripheralMove = "";
   BleConnection ble;
+  ChessBoardController chessController = ChessBoardController();
+  StreamSubscription<String> subscription;
 
   _MyHomePageState() {
     ble = new BleConnection(setState); // todo passing setState looks bad -find better way
+    chessController.addListener(() {
+      if  (chessController.game.history.isEmpty) return;
+
+      Move lastMove = chessController.game.history.last.move;
+      String uci = lastMove.fromAlgebraic + lastMove.toAlgebraic;
+      if (lastMove.promotion != null) uci = uci + lastMove.promotion.name;
+      onNewMoveRequest(uci);
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
   }
 
   void onRequestNewGame() {
-    ble.board.onNewGame("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    ble.board.onTurnChanged(true); // todo in real game we have to have better logic for handling turns
+    chessController.resetBoard();
+    ble.board.onNewGame(chessController.getFen());
+    ble.board.onTurnChanged(chessController.game.turn == Color.WHITE);
   }
 
-  void onNewMoveRequest() {
-    lastCentralMove = move;
-    ble.board.onNewCentralMove(move);
-    ble.board.onTurnChanged(true);
+  void onNewMoveRequest(String uci) {
+    if (lastPeripheralMove.isNotEmpty && lastPeripheralMove != uci) {
+      ble.board.onNewCentralMove(uci);
+      ble.board.onTurnChanged(true);
+      lastPeripheralMove = "";
+    }
   }
 
 
   Widget connectedBoardButtons() {
+    subscription = ble.board?.getBoardMoves()?.listen((move) {
+      String src = move.substring(0, 2);
+      String dst = move.substring(2, 4);
+      String promotion = move.substring(4);
+      setState(() {
+        Color turn = chessController.game.turn;
+        if (promotion.isEmpty)
+          chessController.makeMove(from: src, to: dst);
+        else
+          chessController.makeMoveWithPromotion(from: src, to: dst, pieceToPromoteTo: promotion);
+
+        ble.board.onTurnChanged(false);
+        bool isApproved = turn != chessController.game.turn;
+        ble.board.onMoveJudgement(isApproved);
+        if (isApproved) lastPeripheralMove = move;
+      });
+    });
+
     return Column(
       children: [
         SizedBox(height: 25),
@@ -60,15 +97,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 builder:
                     (context, AsyncSnapshot<String> snapshot) {
                   if (!snapshot.hasData) return Text("");
-
-                  String receivedMove = snapshot.data;
-                  String receivedMoveSrc = receivedMove.substring(0, 2);
-                  String receivedMoveDst = receivedMove.substring(2, 4);
-                  String reversedReceivedMove = receivedMoveDst + receivedMoveSrc;
-                  bool isApproved = lastCentralMove != receivedMove && lastCentralMove != reversedReceivedMove;
-                  ble.board.onTurnChanged(false);
-                  ble.board.onMoveJudgement(isApproved);
-                  return Text(isApproved ? "Move from peripheral: " + receivedMove: "");
+                  return Text(snapshot.data);
                 })),
         TextButton(
             onPressed: onRequestNewGame,
@@ -81,9 +110,6 @@ class _MyHomePageState extends State<MyHomePage> {
               hintText: 'Enter a move',
             )
         ),
-        TextButton(
-            onPressed: onNewMoveRequest,
-            child: Text("Send Move")),
       ],
     );
   }
@@ -116,11 +142,17 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    print("build");
     Widget content = ble.board == null
         ? deviceList()
         : Column(
       children: [
         connectedBoardButtons(),
+        ChessBoard(
+            controller: chessController,
+            boardColor: BoardColor.darkBrown,
+            boardOrientation: PlayerColor.white,
+        )
       ],
     );
     Widget appBar = AppBar(title: Text(" example"));
