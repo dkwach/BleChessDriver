@@ -6,6 +6,12 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'BluetoothConnection.dart';
 
 
+// class ExtendedChessController extends ChessBoardController
+// {
+//
+// }
+
+
 void main() {
   runApp(MyApp());
 }
@@ -43,9 +49,17 @@ class _MyHomePageState extends State<MyHomePage> {
       if  (chessController.game.history.isEmpty) return;
 
       Move lastMove = chessController.game.history.last.move;
-      String uci = lastMove.fromAlgebraic + lastMove.toAlgebraic;
-      if (lastMove.promotion != null) uci = uci + lastMove.promotion.name;
-      onNewMoveRequest(uci);
+      String lastMoveUci = lastMove.fromAlgebraic + lastMove.toAlgebraic;
+      if (lastMove.promotion != null) lastMoveUci = lastMoveUci + lastMove.promotion.name;
+
+      if (lastMoveUci == lastPeripheralMove) {
+        ble.board.onTurnChanged(false);
+        ble.board.onMoveJudgement(true);
+      }
+      else {
+        ble.board.onNewCentralMove(lastMoveUci);
+        ble.board.onTurnChanged(true);
+      }
     });
   }
 
@@ -60,31 +74,19 @@ class _MyHomePageState extends State<MyHomePage> {
     ble.board.onTurnChanged(chessController.game.turn == Color.WHITE);
   }
 
-  void onNewMoveRequest(String uci) {
-    if (lastPeripheralMove.isNotEmpty && lastPeripheralMove != uci) {
-      ble.board.onNewCentralMove(uci);
-      ble.board.onTurnChanged(true);
-      lastPeripheralMove = "";
-    }
-  }
-
-
   Widget connectedBoardButtons() {
     subscription = ble.board?.getBoardMoves()?.listen((move) {
+      lastPeripheralMove = move;
       String src = move.substring(0, 2);
       String dst = move.substring(2, 4);
       String promotion = move.substring(4);
       setState(() {
-        Color turn = chessController.game.turn;
         if (promotion.isEmpty)
           chessController.makeMove(from: src, to: dst);
         else
           chessController.makeMoveWithPromotion(from: src, to: dst, pieceToPromoteTo: promotion);
 
-        ble.board.onTurnChanged(false);
-        bool isApproved = turn != chessController.game.turn;
-        ble.board.onMoveJudgement(isApproved);
-        if (isApproved) lastPeripheralMove = move;
+        //todo we have to reject incorrect move;
       });
     });
 
