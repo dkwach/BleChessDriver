@@ -5,13 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'BluetoothConnection.dart';
 
-
-// class ExtendedChessController extends ChessBoardController
-// {
-//
-// }
-
-
 void main() {
   runApp(MyApp());
 }
@@ -44,22 +37,18 @@ class _MyHomePageState extends State<MyHomePage> {
   StreamSubscription<String> subscription;
 
   _MyHomePageState() {
-    ble = new BleConnection(setState); // todo passing setState looks bad -find better way
+    ble = new BleConnection(
+        setState); // todo passing setState looks bad -find better way
     chessController.addListener(() {
-      if  (chessController.game.history.isEmpty) return;
+      if (chessController.game.history.isEmpty) return;
 
       Move lastMove = chessController.game.history.last.move;
       String lastMoveUci = lastMove.fromAlgebraic + lastMove.toAlgebraic;
-      if (lastMove.promotion != null) lastMoveUci = lastMoveUci + lastMove.promotion.name;
+      if (lastMove.promotion != null)
+        lastMoveUci = lastMoveUci + lastMove.promotion.name;
 
-      if (lastMoveUci == lastPeripheralMove) {
-        ble.board.onTurnChanged(false);
-        ble.board.onMoveJudgement(true);
-      }
-      else {
+      if (lastMoveUci != lastPeripheralMove)
         ble.board.onNewCentralMove(lastMoveUci);
-        ble.board.onTurnChanged(true);
-      }
     });
   }
 
@@ -71,22 +60,14 @@ class _MyHomePageState extends State<MyHomePage> {
   void onRequestNewGame() {
     chessController.resetBoard();
     ble.board.onNewGame(chessController.getFen());
-    ble.board.onTurnChanged(chessController.game.turn == Color.WHITE);
   }
 
   Widget connectedBoardButtons() {
     subscription = ble.board?.getBoardMoves()?.listen((move) {
       lastPeripheralMove = move;
-      String src = move.substring(0, 2);
-      String dst = move.substring(2, 4);
-      String promotion = move.substring(4);
+      bool isApproved = chessController.makeMoveUci(uci: move);
       setState(() {
-        if (promotion.isEmpty)
-          chessController.makeMove(from: src, to: dst);
-        else
-          chessController.makeMoveWithPromotion(from: src, to: dst, pieceToPromoteTo: promotion);
-
-        //todo we have to reject incorrect move;
+        ble.board.onMoveJudgement(isApproved);
       });
     });
 
@@ -96,22 +77,21 @@ class _MyHomePageState extends State<MyHomePage> {
         Center(
             child: StreamBuilder(
                 stream: ble.board?.getBoardMoves(),
-                builder:
-                    (context, AsyncSnapshot<String> snapshot) {
+                builder: (context, AsyncSnapshot<String> snapshot) {
                   if (!snapshot.hasData) return Text("");
                   return Text(snapshot.data);
                 })),
         TextButton(
-            onPressed: onRequestNewGame,
-            child: Text("Request New game")),
+            onPressed: onRequestNewGame, child: Text("Request New game")),
         TextField(
             onChanged: (String str) => move = str,
-            inputFormatters: [FilteringTextInputFormatter.allow(RegExp("[a-h1-8kqbr]"))],
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp("[a-h1-8kqbr]"))
+            ],
             decoration: InputDecoration(
               border: OutlineInputBorder(),
               hintText: 'Enter a move',
-            )
-        ),
+            )),
       ],
     );
   }
@@ -126,17 +106,17 @@ class _MyHomePageState extends State<MyHomePage> {
             child: ble.scanning
                 ? CircularProgressIndicator()
                 : TextButton(
-              child: Text("List Devices"),
-              onPressed: ble.listDevices,
-            )),
+                    child: Text("List Devices"),
+                    onPressed: ble.listDevices,
+                  )),
         Flexible(
             child: ListView.builder(
                 itemCount: ble.devices.length,
                 itemBuilder: (context, index) => ListTile(
-                  title: Text(ble.devices[index].name),
-                  subtitle: Text(ble.devices[index].id.toString()),
-                  onTap: () => ble.connect(ble.devices[index]),
-                ))),
+                      title: Text(ble.devices[index].name),
+                      subtitle: Text(ble.devices[index].id.toString()),
+                      onTap: () => ble.connect(ble.devices[index]),
+                    ))),
         SizedBox(height: 24)
       ],
     );
@@ -148,15 +128,15 @@ class _MyHomePageState extends State<MyHomePage> {
     Widget content = ble.board == null
         ? deviceList()
         : Column(
-      children: [
-        connectedBoardButtons(),
-        ChessBoard(
-            controller: chessController,
-            boardColor: BoardColor.darkBrown,
-            boardOrientation: PlayerColor.white,
-        )
-      ],
-    );
+            children: [
+              connectedBoardButtons(),
+              ChessBoard(
+                controller: chessController,
+                boardColor: BoardColor.darkBrown,
+                boardOrientation: PlayerColor.white,
+              )
+            ],
+          );
     Widget appBar = AppBar(title: Text(" example"));
 
     return DefaultTabController(
