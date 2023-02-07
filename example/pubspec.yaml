@@ -26,7 +26,7 @@ dependencies:
   universal_chess_driver:
     path: ../
   flutter_reactive_ble: ^5.0.2
-  flutter_stateless_chessboard: ^0.0.6
+  flutter_chess_board: ^1.0.1
   permission_handler: ^8.3.0
 
 
