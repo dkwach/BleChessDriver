@@ -3,7 +3,10 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
-import 'BluetoothConnection.dart';
+import 'package:example/ble/ChessBoardProvider.dart';
+import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
+import 'package:universal_chess_driver/UniversalPeripheral.dart';
+import 'package:example/ble/Scanner.dart';
 
 void main() {
   runApp(MyApp());
@@ -23,32 +26,47 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key}) : super(key: key);
+  MyHomePage({Key? key}) : super(key: key);
 
   @override
   _MyHomePageState createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  String move;
+  String move = "";
   String lastPeripheralMove = "";
-  BleConnection ble;
+  ChessBoardProvider boardProvider = ChessBoardProvider();
+  UniversalPeripheral? board;
   ChessBoardController chessController = ChessBoardController();
-  StreamSubscription<String> subscription;
+  StreamSubscription<String>? subscription;
+  late List<DiscoveredDevice> _chessBoardsDevices;
 
   _MyHomePageState() {
-    ble = new BleConnection(
-        setState); // todo passing setState looks bad -find better way
+    boardProvider.connectionState.listen((event) {
+      if (event.connectionState == DeviceConnectionState.connected) {
+        var chessBoardDevice = _chessBoardsDevices
+            .firstWhere((d) => d.id.toString() == event.deviceId);
+        boardProvider.createBoard(chessBoardDevice).then((value) {
+          setState(() {
+            board = value;
+          });
+        });
+      } else
+        setState(() {
+          board = null;
+        });
+    });
+
     chessController.addListener(() {
       if (chessController.game.history.isEmpty) return;
 
       Move lastMove = chessController.game.history.last.move;
       String lastMoveUci = lastMove.fromAlgebraic + lastMove.toAlgebraic;
       if (lastMove.promotion != null)
-        lastMoveUci = lastMoveUci + lastMove.promotion.name;
+        lastMoveUci = lastMoveUci + lastMove.promotion!.name;
 
       if (lastMoveUci != lastPeripheralMove)
-        ble.board.onNewCentralMove(lastMoveUci);
+        board!.onNewCentralMove(lastMoveUci);
     });
   }
 
@@ -59,15 +77,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void onRequestNewGame() {
     chessController.resetBoard();
-    ble.board.onNewGame(chessController.getFen());
+    board!.onNewGame(chessController.getFen());
   }
 
   Widget connectedBoardButtons() {
-    subscription = ble.board?.getBoardMoves()?.listen((move) {
+    subscription = board?.getBoardMoves()?.listen((move) {
       lastPeripheralMove = move;
       bool isApproved = chessController.makeMoveUci(uci: move);
       setState(() {
-        ble.board.onMoveJudgement(isApproved);
+        board!.onMoveJudgement(isApproved);
       });
     });
 
@@ -76,10 +94,10 @@ class _MyHomePageState extends State<MyHomePage> {
         SizedBox(height: 25),
         Center(
             child: StreamBuilder(
-                stream: ble.board?.getBoardMoves(),
+                stream: board?.getBoardMoves(),
                 builder: (context, AsyncSnapshot<String> snapshot) {
                   if (!snapshot.hasData) return Text("");
-                  return Text(snapshot.data);
+                  return Text(snapshot.data!);
                 })),
         TextButton(
             onPressed: onRequestNewGame, child: Text("Request New game")),
@@ -96,27 +114,39 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Widget deviceList() {
+  Widget deviceList(BuildContext context) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         SizedBox(height: 25),
         Center(
-            child: ble.scanning
-                ? CircularProgressIndicator()
-                : TextButton(
-                    child: Text("List Devices"),
-                    onPressed: ble.listDevices,
-                  )),
+            child: StreamBuilder(
+                stream: boardProvider.scannerState,
+                builder: (context, AsyncSnapshot<BleScannerState> snapshot) {
+                  return (snapshot.hasData && snapshot.data!.scanIsInProgress)
+                      ? CircularProgressIndicator()
+                      : TextButton(
+                          child: Text("List Devices"),
+                          onPressed: boardProvider.scan);
+                })),
         Flexible(
-            child: ListView.builder(
-                itemCount: ble.devices.length,
-                itemBuilder: (context, index) => ListTile(
-                      title: Text(ble.devices[index].name),
-                      subtitle: Text(ble.devices[index].id.toString()),
-                      onTap: () => ble.connect(ble.devices[index]),
-                    ))),
+            child: StreamBuilder(
+                stream: boardProvider.scannerState,
+                builder: (context, AsyncSnapshot<BleScannerState> snapshot) {
+                  _chessBoardsDevices =
+                      snapshot.hasData ? snapshot.data!.discoveredDevices : [];
+
+                  return ListView.builder(
+                      itemCount: _chessBoardsDevices.length,
+                      itemBuilder: (context, index) => ListTile(
+                            title: Text(_chessBoardsDevices[index].name),
+                            subtitle:
+                                Text(_chessBoardsDevices[index].id.toString()),
+                            onTap: () => boardProvider.connect(
+                                _chessBoardsDevices[index].id.toString()),
+                          ));
+                })),
         SizedBox(height: 24)
       ],
     );
@@ -124,9 +154,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    print("build");
-    Widget content = ble.board == null
-        ? deviceList()
+    Widget content = board == null
+        ? deviceList(context)
         : Column(
             children: [
               connectedBoardButtons(),
@@ -137,9 +166,14 @@ class _MyHomePageState extends State<MyHomePage> {
               )
             ],
           );
-    Widget appBar = AppBar(title: Text(" example"));
 
     return DefaultTabController(
-        length: 2, child: Scaffold(appBar: appBar, body: content));
+        length: 2,
+        child: Scaffold(
+            appBar: PreferredSize(
+              preferredSize: const Size.fromHeight(100),
+              child: AppBar(title: Text("Universal chess board example")),
+            ),
+            body: content));
   }
 }
