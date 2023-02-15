@@ -1,4 +1,5 @@
 import 'dart:async';
+import "package:chess/chess.dart";
 import 'package:universal_chess_driver/UniversalCommunicationClient.dart';
 import 'package:universal_chess_driver/Protocol.dart';
 
@@ -9,6 +10,7 @@ class UniversalPeripheral {
   StreamController _moveStreamController;
   Stream<String> _moveStream;
   Cecp _protocol;
+  Chess _chess = Chess();
 
   UniversalPeripheral();
 
@@ -17,9 +19,7 @@ class UniversalPeripheral {
     _client.receiveStream.listen(_handleInputStream);
     _moveStreamController = new StreamController<String>();
     _moveStream = _moveStreamController.stream.asBroadcastStream();
-    _protocol = new Cecp(_client, (String move) {
-      _moveStreamController.add(move);
-    });
+    _protocol = new Cecp(_client, _onNewMoveFromPeripherial);
     _protocol.init();
   }
 
@@ -28,9 +28,9 @@ class UniversalPeripheral {
   // (e.g. based on hall sensors) FEN contains "?" characteres
   // indicating piece ocupancy on position
   String getState() {
-    throw new UnimplementedError("preview not supported");
+    return _chess.fen;
   }
-  
+
   // stream of UCI moves, which should be consumed by app
   // remember to accept or reject moves (see bellow)
   Stream<String> getBoardMoves() {
@@ -39,29 +39,34 @@ class UniversalPeripheral {
 
   // call when new game is starting
   void onNewGame(String fen) {
+    _chess.load(fen);
     _protocol.onNewGame(fen);
   }
 
   // call from app on new move on central/phone is done
   // it doesn't metter if it is black or white move (in 1v1 match)
   void onNewCentralMove(String uci) {
+    _applyMove(uci);
     _protocol.onNewCentralMove(uci);
-  }
-
-  // call from app  when move is accepted or rejected
-  // when move is accepted call onTurnChanged before
-  void onMoveJudgement(bool isAccepted) {
-    _protocol.onMoveJudgement(isAccepted);
-  }
-
-  // call from app when turn is changed or at the game beginning
-  // It should be alwyas isUserTurn==true in 1v1 match
-  void onTurnChanged(bool isUserTurn) {
-    _protocol.isUserTurn = isUserTurn;
   }
 
   void _handleInputStream(List<int> chunk) {
     String msg = String.fromCharCodes(chunk);
     _protocol.onReceiveMsgFromPeripheral(msg);
+  }
+
+  void _onNewMoveFromPeripherial(String uci) {
+    bool isAccepted = _applyMove(uci);
+    _protocol.onMoveJudgement(isAccepted);
+    if (isAccepted) _moveStreamController.add(uci);
+  }
+
+  bool _applyMove(String uci) {
+    String src = uci.substring(0, 2);
+    String dst = uci.substring(2, 4);
+    String promotion = uci.substring(4);
+    return promotion.isEmpty
+        ? _chess.move({"from": src, "to": dst})
+        : _chess.move({"from": src, "to": dst, "promotion": promotion});
   }
 }

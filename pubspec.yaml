@@ -10,3 +10,4 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  chess: ^0.7.0

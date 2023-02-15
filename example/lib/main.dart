@@ -83,10 +83,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget connectedBoardButtons() {
     subscription = board?.getBoardMoves()?.listen((move) {
       lastPeripheralMove = move;
-      bool isApproved = chessController.makeMoveUci(uci: move);
-      setState(() {
-        board!.onMoveJudgement(isApproved);
-      });
+      chessController.makeMoveUci(uci: move);
     });
 
     return Column(
