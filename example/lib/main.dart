@@ -83,7 +83,8 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget connectedBoardButtons() {
     subscription = board?.getBoardMoves()?.listen((move) {
       lastPeripheralMove = move;
-      chessController.makeMoveUci(uci: move);
+      bool isApproved = chessController.makeMoveUci(uci: move);
+      board!.onMoveJudgement(isApproved);
     });
 
     return Column(
@@ -98,15 +99,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 })),
         TextButton(
             onPressed: onRequestNewGame, child: Text("Request New game")),
-        TextField(
-            onChanged: (String str) => move = str,
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp("[a-h1-8kqbr]"))
-            ],
-            decoration: InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: 'Enter a move',
-            )),
       ],
     );
   }
