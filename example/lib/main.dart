@@ -12,6 +12,22 @@ void main() {
   runApp(MyApp());
 }
 
+class ExampleAppContract implements AppContract {
+  Chess _game;
+
+  ExampleAppContract(this._game);
+
+  bool isMoveLegal(String move) {
+    String src = move.substring(0, 2);
+    String dst = move.substring(2, 4);
+    String promotion = move.substring(4);
+    return _game.moves({"asObjects": true}).any((m) =>
+        src == m.fromAlgebraic &&
+        dst == m.toAlgebraic &&
+        promotion == (m.promotion?.name ?? ""));
+  }
+}
+
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -46,9 +62,11 @@ class _MyHomePageState extends State<MyHomePage> {
       if (event.connectionState == DeviceConnectionState.connected) {
         var chessBoardDevice = _chessBoardsDevices
             .firstWhere((d) => d.id.toString() == event.deviceId);
-        boardProvider.createBoard(chessBoardDevice).then((value) {
+        boardProvider.createBoardClient(chessBoardDevice).then((client) {
           setState(() {
-            board = value;
+            board = new UniversalPeripheral(
+                ExampleAppContract(chessController.game));
+            board!.init(client);
           });
         });
       } else
@@ -83,8 +101,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget connectedBoardButtons() {
     subscription = board?.getBoardMoves()?.listen((move) {
       lastPeripheralMove = move;
-      bool isApproved = chessController.makeMoveUci(uci: move);
-      board!.onMoveJudgement(isApproved);
+      chessController.makeMoveUci(uci: move);
     });
 
     return Column(

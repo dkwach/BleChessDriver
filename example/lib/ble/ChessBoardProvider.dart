@@ -40,7 +40,8 @@ class ChessBoardProvider {
     await Permission.bluetoothScan.request();
   }
 
-  Future<UniversalPeripheral> createBoard(DiscoveredDevice device) async {
+  Future<UniversalCommunicationClient> createBoardClient(
+      DiscoveredDevice device) async {
     final read = QualifiedCharacteristic(
         serviceId: Uuid.parse(UniversalCommunicationClient.srv),
         characteristicId: Uuid.parse(UniversalCommunicationClient.rxCh),
@@ -54,9 +55,6 @@ class ChessBoardProvider {
         (v) => _ble.writeCharacteristicWithResponse(write, value: v));
     _ble.subscribeToCharacteristic(read).listen(client.handleReceive);
 
-    UniversalPeripheral board = new UniversalPeripheral();
-    board.init(client);
-
-    return board;
+    return client;
   }
 }

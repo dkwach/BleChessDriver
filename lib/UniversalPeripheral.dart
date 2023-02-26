@@ -4,21 +4,31 @@ import 'package:universal_chess_driver/Protocol.dart';
 
 export 'package:universal_chess_driver/UniversalCommunicationClient.dart';
 
+abstract class AppContract {
+  bool isMoveLegal(String uci);
+}
+
 class UniversalPeripheral {
   UniversalCommunicationClient _client;
+  AppContract _contract;
   StreamController _moveStreamController;
   Stream<String> _moveStream;
   Cecp _protocol;
 
-  UniversalPeripheral();
+  UniversalPeripheral(this._contract);
 
   void init(UniversalCommunicationClient client) {
     _client = client;
     _client.receiveStream.listen(_handleInputStream);
     _moveStreamController = new StreamController<String>();
     _moveStream = _moveStreamController.stream.asBroadcastStream();
-    _protocol =
-        new Cecp(_client, (String move) => _moveStreamController.add(move));
+    _protocol = new Cecp(_client, (String move) {
+      if (_contract.isMoveLegal(move)) {
+        _moveStreamController.add(move);
+        _protocol.onMoveJudgement(true);
+      } else
+        _protocol.onMoveJudgement(false);
+    });
     _protocol.init();
   }
 
@@ -31,7 +41,6 @@ class UniversalPeripheral {
   }
 
   // stream of UCI moves, which should be consumed by app
-  // remember to accept or reject moves (see bellow)
   Stream<String> getBoardMoves() {
     return _moveStream;
   }
@@ -45,12 +54,6 @@ class UniversalPeripheral {
   // it doesn't metter if it is black or white move (in 1v1 match)
   void onNewCentralMove(String uci) {
     _protocol.onNewCentralMove(uci);
-  }
-
-  // call from app  when move is accepted or rejected
-  // when move is accepted call onTurnChanged before
-  void onMoveJudgement(bool isAccepted) {
-    _protocol.onMoveJudgement(isAccepted);
   }
 
   void _handleInputStream(List<int> chunk) {
