@@ -15,6 +15,4 @@ In current version open protocol is based on CECP widely used as a protocol betw
 
 
 For short description please see:
-https://github.com/vovagorodok/lichobile/blob/master/src/universal_chess_driver/README.md
-
-
+https://github.com/vovagorodok/lichobile/blob/bluetooth/src/externalDevice/README.md
