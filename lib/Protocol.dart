@@ -18,8 +18,8 @@ class CecpFeatures {
 class Cecp {
   final UniversalCommunicationClient _client;
   CecpFeatures _features = new CecpFeatures();
-  String _lastPeripheralMove;
-  _State _state;
+  late String _lastPeripheralMove;
+  late _State _state;
   bool isUserTurn = true; // todo fix this later - should be taken from game
   Function _onNewPeripheralMove;
 
@@ -81,7 +81,7 @@ class Cecp {
 }
 
 class _State {
-  Cecp _context;
+  late Cecp _context;
 
   void setContext(Cecp context) {
     _context = context;

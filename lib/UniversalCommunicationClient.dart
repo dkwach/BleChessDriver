@@ -9,11 +9,8 @@ class UniversalCommunicationClient {
   final StreamController<List<int>> _inputStreamController =
       StreamController<List<int>>();
 
-  Stream<List<int>> _receiveStream;
+  late Stream<List<int>> _receiveStream=_inputStreamController.stream.asBroadcastStream();
   Stream<List<int>> get receiveStream {
-    if (_receiveStream == null) {
-      _receiveStream = _inputStreamController.stream.asBroadcastStream();
-    }
     return _receiveStream;
   }
 

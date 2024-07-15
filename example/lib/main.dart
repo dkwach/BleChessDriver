@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:example/ble/ChessBoardProvider.dart';
@@ -99,7 +98,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget connectedBoardButtons() {
-    subscription = board?.getBoardMoves()?.listen((move) {
+    subscription = board?.getBoardMoves().listen((move) {
       lastPeripheralMove = move;
       chessController.makeMoveUci(uci: move);
     });

@@ -9,11 +9,11 @@ abstract class AppContract {
 }
 
 class UniversalPeripheral {
-  UniversalCommunicationClient _client;
+  late   UniversalCommunicationClient _client;
   AppContract _contract;
-  StreamController _moveStreamController;
-  Stream<String> _moveStream;
-  Cecp _protocol;
+  late StreamController _moveStreamController;
+  late Stream<String> _moveStream;
+  late Cecp _protocol;
 
   UniversalPeripheral(this._contract);
 
@@ -21,7 +21,7 @@ class UniversalPeripheral {
     _client = client;
     _client.receiveStream.listen(_handleInputStream);
     _moveStreamController = new StreamController<String>();
-    _moveStream = _moveStreamController.stream.asBroadcastStream();
+    _moveStream = _moveStreamController.stream.asBroadcastStream().cast<String>();
     _protocol = new Cecp(_client, (String move) {
       if (_contract.isMoveLegal(move)) {
         _moveStreamController.add(move);
