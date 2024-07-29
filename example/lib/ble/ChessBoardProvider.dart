@@ -9,13 +9,13 @@ import 'package:example/ble/Scanner.dart';
 
 typedef VoidCallback = void Function();
 
-class ChessBoardProvider {
+class BleClientProvider {
   final _ble = FlutterReactiveBle();
   late BleScanner _scanner = BleScanner(ble: _ble, logMessage: print);
   late BleDeviceConnector _connector =
       BleDeviceConnector(ble: _ble, logMessage: print);
 
-  ChessBoardProvider();
+  BleClientProvider();
 
   Stream<BleScannerState> get scannerState => _scanner.state;
   Stream<ConnectionStateUpdate> get connectionState => _connector.state;
@@ -40,7 +40,7 @@ class ChessBoardProvider {
     await Permission.bluetoothScan.request();
   }
 
-  Future<UniversalCommunicationClient> createBoardClient(
+  Future<UniversalCommunicationClient> create(
       DiscoveredDevice device) async {
     final read = QualifiedCharacteristic(
         serviceId: Uuid.parse(UniversalCommunicationClient.srv),

@@ -50,18 +50,18 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   String move = "";
   String lastPeripheralMove = "";
-  ChessBoardProvider boardProvider = ChessBoardProvider();
+  BleClientProvider bleClient = BleClientProvider();
   UniversalPeripheral? board;
   ChessBoardController chessController = ChessBoardController();
   StreamSubscription<String>? subscription;
   late List<DiscoveredDevice> _chessBoardsDevices;
 
   _MyHomePageState() {
-    boardProvider.connectionState.listen((event) {
+    bleClient.connectionState.listen((event) {
       if (event.connectionState == DeviceConnectionState.connected) {
         var chessBoardDevice = _chessBoardsDevices
             .firstWhere((d) => d.id.toString() == event.deviceId);
-        boardProvider.createBoardClient(chessBoardDevice).then((client) {
+        bleClient.create(chessBoardDevice).then((client) {
           setState(() {
             board = new UniversalPeripheral(
                 ExampleAppContract(chessController.game));
@@ -127,17 +127,17 @@ class _MyHomePageState extends State<MyHomePage> {
         SizedBox(height: 25),
         Center(
             child: StreamBuilder(
-                stream: boardProvider.scannerState,
+                stream: bleClient.scannerState,
                 builder: (context, AsyncSnapshot<BleScannerState> snapshot) {
                   return (snapshot.hasData && snapshot.data!.scanIsInProgress)
                       ? CircularProgressIndicator()
                       : TextButton(
                           child: Text("List Devices"),
-                          onPressed: boardProvider.scan);
+                          onPressed: bleClient.scan);
                 })),
         Flexible(
             child: StreamBuilder(
-                stream: boardProvider.scannerState,
+                stream: bleClient.scannerState,
                 builder: (context, AsyncSnapshot<BleScannerState> snapshot) {
                   _chessBoardsDevices =
                       snapshot.hasData ? snapshot.data!.discoveredDevices : [];
@@ -148,7 +148,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             title: Text(_chessBoardsDevices[index].name),
                             subtitle:
                                 Text(_chessBoardsDevices[index].id.toString()),
-                            onTap: () => boardProvider.connect(
+                            onTap: () => bleClient.connect(
                                 _chessBoardsDevices[index].id.toString()),
                           ));
                 })),
