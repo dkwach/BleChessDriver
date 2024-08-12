@@ -35,7 +35,7 @@ class BleClientProvider {
   }
 
   Future<void> _reqPermission() async {
-    await Permission.locationWhenInUse.request();
+    PermissionStatus a = await Permission.locationWhenInUse.request();
     await Permission.bluetoothConnect.request();
     await Permission.bluetoothScan.request();
   }

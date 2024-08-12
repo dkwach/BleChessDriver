@@ -9,3 +9,4 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_reactive_ble: ^5.0.2
