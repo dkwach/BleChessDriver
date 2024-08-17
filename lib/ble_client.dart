@@ -1,5 +1,5 @@
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
-import 'package:universal_chess_driver/PeripherialClient.dart';
+import 'package:universal_chess_driver/peripherial_client.dart';
 
 class Bleclient implements PeripherialClient {
   static final String srv = "f5351050-b2c9-11ec-a0c0-b3bc53b08d33";

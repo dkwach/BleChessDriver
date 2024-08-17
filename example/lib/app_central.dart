@@ -1,5 +1,5 @@
 import 'package:flutter_chess_board/flutter_chess_board.dart';
-import 'package:universal_chess_driver/Central.dart';
+import 'package:universal_chess_driver/central.dart';
 
 class AppCentral implements Central {
   ChessBoardController _chessController;

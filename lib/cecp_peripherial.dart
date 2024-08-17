@@ -1,6 +1,6 @@
-import 'package:universal_chess_driver/Central.dart';
-import 'package:universal_chess_driver/Peripherial.dart';
-import 'package:universal_chess_driver/PeripherialClient.dart';
+import 'package:universal_chess_driver/central.dart';
+import 'package:universal_chess_driver/peripherial.dart';
+import 'package:universal_chess_driver/peripherial_client.dart';
 
 class CecpFeatures {
   bool setboard = false;

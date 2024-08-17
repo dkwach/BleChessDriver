@@ -1,12 +1,12 @@
-import 'package:example/AppCentral.dart';
-import 'package:example/ble/BleClientProvider.dart';
-import 'package:example/ble/Scanner.dart';
+import 'package:example/app_central.dart';
+import 'package:example/ble/ble_client_provider.dart';
+import 'package:example/ble/scanner.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
-import 'package:universal_chess_driver/BleClient.dart';
-import 'package:universal_chess_driver/CecpPeripherial.dart';
-import 'package:universal_chess_driver/Peripherial.dart';
+import 'package:universal_chess_driver/ble_client.dart';
+import 'package:universal_chess_driver/cecp_peripherial.dart';
+import 'package:universal_chess_driver/peripherial.dart';
 
 void main() {
   runApp(MyApp());

@@ -2,7 +2,7 @@
 
 import 'dart:async';
 
-import 'package:example/ble/ReactiveState.dart';
+import 'package:example/ble/reactive_state.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 
 class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
