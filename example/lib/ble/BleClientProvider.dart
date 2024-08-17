@@ -1,11 +1,10 @@
 import 'dart:async';
 
+import 'package:example/ble/DeviceConnector.dart';
+import 'package:example/ble/Scanner.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:universal_chess_driver/BleClient.dart';
-
-import 'package:example/ble/DeviceConnector.dart';
-import 'package:example/ble/Scanner.dart';
 
 typedef VoidCallback = void Function();
 

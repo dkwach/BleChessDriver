@@ -2,8 +2,8 @@
 
 import 'dart:async';
 
-import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:example/ble/ReactiveState.dart';
+import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:meta/meta.dart';
 
 class BleScanner implements ReactiveState<BleScannerState> {
