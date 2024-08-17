@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:universal_chess_driver/UniversalPeripheral.dart';
+import 'package:universal_chess_driver/BleClient.dart';
 
 import 'package:example/ble/DeviceConnector.dart';
 import 'package:example/ble/Scanner.dart';
@@ -20,9 +20,9 @@ class BleClientProvider {
   Stream<BleScannerState> get scannerState => _scanner.state;
   Stream<ConnectionStateUpdate> get connectionState => _connector.state;
 
-  Future<void> scan() async {
+  Future<void> scan(String uuid) async {
     await _reqPermission();
-    _scanner.startScan([Uuid.parse(UniversalCommunicationClient.srv)]);
+    _scanner.startScan([Uuid.parse(uuid)]);
   }
 
   Future<void> stopScan() async {
@@ -35,26 +35,12 @@ class BleClientProvider {
   }
 
   Future<void> _reqPermission() async {
-    PermissionStatus a = await Permission.locationWhenInUse.request();
+    await Permission.locationWhenInUse.request();
     await Permission.bluetoothConnect.request();
     await Permission.bluetoothScan.request();
   }
 
-  Future<UniversalCommunicationClient> create(
-      DiscoveredDevice device) async {
-    final read = QualifiedCharacteristic(
-        serviceId: Uuid.parse(UniversalCommunicationClient.srv),
-        characteristicId: Uuid.parse(UniversalCommunicationClient.rxCh),
-        deviceId: device.id);
-    final write = QualifiedCharacteristic(
-        serviceId: Uuid.parse(UniversalCommunicationClient.srv),
-        characteristicId: Uuid.parse(UniversalCommunicationClient.txCh),
-        deviceId: device.id);
-
-    UniversalCommunicationClient client = UniversalCommunicationClient(
-        (v) => _ble.writeCharacteristicWithResponse(write, value: v));
-    _ble.subscribeToCharacteristic(read).listen(client.handleReceive);
-
-    return client;
+  Bleclient createClient(DiscoveredDevice device) {
+    return Bleclient(_ble, device);
   }
 }

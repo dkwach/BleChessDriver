@@ -4,23 +4,39 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:example/ble/BleClientProvider.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
-import 'package:universal_chess_driver/UniversalPeripheral.dart';
+import 'package:universal_chess_driver/Peripherial.dart';
+import 'package:universal_chess_driver/Central.dart';
+import 'package:universal_chess_driver/CecpPeripherial.dart';
+import 'package:universal_chess_driver/BleClient.dart';
 import 'package:example/ble/Scanner.dart';
 
 void main() {
   runApp(MyApp());
 }
 
-class ExampleAppContract implements AppContract {
-  Chess _game;
+class AppCentral implements Central {
+  ChessBoardController _chessController;
+  String lastPeripheralMove = "";
 
-  ExampleAppContract(this._game);
+  AppCentral(this._chessController);
+
+  Future<bool> move(String uci) {
+    if (!isMoveLegal(uci))
+      return Future.value(false);
+
+    lastPeripheralMove = uci;
+    _chessController.makeMoveUci(uci: uci);
+    return Future.value(true);
+  }
+  Future<String> obtainPromotedPawn() { return Future.value("q"); }
+  void indicateOutOfSync(String peripherialFen) { print("Peripherial is out of sync: $peripherialFen"); }
+  void showMsg(String msg) { print("Peripherial is out of sync: $msg"); }
 
   bool isMoveLegal(String move) {
     String src = move.substring(0, 2);
     String dst = move.substring(2, 4);
     String promotion = move.substring(4);
-    return _game.moves({"asObjects": true}).any((m) =>
+    return _chessController.game.moves({"asObjects": true}).any((m) =>
         src == m.fromAlgebraic &&
         dst == m.toAlgebraic &&
         promotion == (m.promotion?.name ?? ""));
@@ -48,31 +64,29 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  String move = "";
-  String lastPeripheralMove = "";
-  BleClientProvider bleClient = BleClientProvider();
-  UniversalPeripheral? board;
+  BleClientProvider bleProvider = BleClientProvider();
+  Peripherial? peripherialBoard;
   ChessBoardController chessController = ChessBoardController();
-  StreamSubscription<String>? subscription;
+  late AppCentral appCentral;
   late List<DiscoveredDevice> _chessBoardsDevices;
 
   _MyHomePageState() {
-    bleClient.connectionState.listen((event) {
-      if (event.connectionState == DeviceConnectionState.connected) {
-        var chessBoardDevice = _chessBoardsDevices
-            .firstWhere((d) => d.id.toString() == event.deviceId);
-        bleClient.create(chessBoardDevice).then((client) {
+    appCentral = AppCentral(chessController);
+    bleProvider.connectionState.listen((event) {
+        if (event.connectionState == DeviceConnectionState.connected) {
+          var chessBoardDevice = _chessBoardsDevices
+              .firstWhere((d) => d.id.toString() == event.deviceId);
+            setState(() {
+              peripherialBoard = new CecpPeripherial(bleProvider.createClient(chessBoardDevice), appCentral);
+            });
+          }
+        else {
           setState(() {
-            board = new UniversalPeripheral(
-                ExampleAppContract(chessController.game));
-            board!.init(client);
+            peripherialBoard = null;
           });
-        });
-      } else
-        setState(() {
-          board = null;
-        });
-    });
+        }
+      }
+    );
 
     chessController.addListener(() {
       if (chessController.game.history.isEmpty) return;
@@ -82,8 +96,8 @@ class _MyHomePageState extends State<MyHomePage> {
       if (lastMove.promotion != null)
         lastMoveUci = lastMoveUci + lastMove.promotion!.name;
 
-      if (lastMoveUci != lastPeripheralMove)
-        board!.onNewCentralMove(lastMoveUci);
+      if (lastMoveUci != appCentral.lastPeripheralMove)
+        peripherialBoard!.move(lastMoveUci);
     });
   }
 
@@ -94,25 +108,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void onRequestNewGame() {
     chessController.resetBoard();
-    board!.onNewGame(chessController.getFen());
+    peripherialBoard!.startNewGame(chessController.getFen(), "standard");
   }
 
   Widget connectedBoardButtons() {
-    subscription = board?.getBoardMoves().listen((move) {
-      lastPeripheralMove = move;
-      chessController.makeMoveUci(uci: move);
-    });
 
     return Column(
       children: [
         SizedBox(height: 25),
-        Center(
-            child: StreamBuilder(
-                stream: board?.getBoardMoves(),
-                builder: (context, AsyncSnapshot<String> snapshot) {
-                  if (!snapshot.hasData) return Text("");
-                  return Text(snapshot.data!);
-                })),
         TextButton(
             onPressed: onRequestNewGame, child: Text("Request New game")),
       ],
@@ -127,17 +130,17 @@ class _MyHomePageState extends State<MyHomePage> {
         SizedBox(height: 25),
         Center(
             child: StreamBuilder(
-                stream: bleClient.scannerState,
+                stream: bleProvider.scannerState,
                 builder: (context, AsyncSnapshot<BleScannerState> snapshot) {
                   return (snapshot.hasData && snapshot.data!.scanIsInProgress)
                       ? CircularProgressIndicator()
                       : TextButton(
                           child: Text("List Devices"),
-                          onPressed: bleClient.scan);
+                          onPressed: () => bleProvider.scan(Bleclient.srv));
                 })),
         Flexible(
             child: StreamBuilder(
-                stream: bleClient.scannerState,
+                stream: bleProvider.scannerState,
                 builder: (context, AsyncSnapshot<BleScannerState> snapshot) {
                   _chessBoardsDevices =
                       snapshot.hasData ? snapshot.data!.discoveredDevices : [];
@@ -148,7 +151,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             title: Text(_chessBoardsDevices[index].name),
                             subtitle:
                                 Text(_chessBoardsDevices[index].id.toString()),
-                            onTap: () => bleClient.connect(
+                            onTap: () => bleProvider.connect(
                                 _chessBoardsDevices[index].id.toString()),
                           ));
                 })),
@@ -159,7 +162,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    Widget content = board == null
+    Widget content = peripherialBoard == null
         ? deviceList(context)
         : Column(
             children: [

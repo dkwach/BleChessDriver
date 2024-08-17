@@ -1,4 +1,7 @@
-import 'package:universal_chess_driver/UniversalCommunicationClient.dart';
+
+import 'package:universal_chess_driver/Peripherial.dart';
+import 'package:universal_chess_driver/PeripherialClient.dart';
+import 'package:universal_chess_driver/Central.dart';
 
 class CecpFeatures {
   bool setboard = false;
@@ -15,17 +18,18 @@ class CecpFeatures {
   }
 }
 
-class Cecp {
-  final UniversalCommunicationClient _client;
+class CecpPeripherial implements Peripherial{
+  final PeripherialClient _client;
+  final Central _central;
   CecpFeatures _features = new CecpFeatures();
   late String _lastPeripheralMove;
   late _State _state;
   bool isUserTurn = true; // todo fix this later - should be taken from game
-  Function _onNewPeripheralMove;
 
-  Cecp(this._client, this._onNewPeripheralMove);
 
-  void init() {
+  CecpPeripherial(this._client, this._central)
+  {
+    _client.recieve().listen((dataChunks) => onReceiveMsgFromPeripheral(String.fromCharCodes(dataChunks)));
     transitionTo(new Init());
   }
 
@@ -36,8 +40,8 @@ class Cecp {
     _state.onEnter();
   }
 
-  void notifyAboutPeripheralMove(String move) {
-    _onNewPeripheralMove(move);
+  void onPeripherialMove() {
+    _central.move(getLastPeripheralMove()).then((value) => onMoveJudgement(value));
   }
 
   void send(String command) {
@@ -47,15 +51,15 @@ class Cecp {
   }
 
   void onReceiveMsgFromPeripheral(String msg) {
-    print("peripheral: " + msg);
+    print("Peripheral: " + msg);
     _state.onReceiveMsgFromPeripheral(msg);
   }
 
-  void onNewGame(String fen) {
+  void startNewGame(String fen, String variant) {
     _state.onNewGame(fen);
   }
 
-  void onNewCentralMove(String move) {
+  void move(String move) {
     _state.onNewCentralMove(move);
   }
 
@@ -81,9 +85,9 @@ class Cecp {
 }
 
 class _State {
-  late Cecp _context;
+  late CecpPeripherial _context;
 
-  void setContext(Cecp context) {
+  void setContext(CecpPeripherial context) {
     _context = context;
   }
 
@@ -180,7 +184,7 @@ class AskAndWaitUserMove extends WaitUserMove {
 
 class VerifyUserMove extends _State {
   onEnter() {
-    _context.notifyAboutPeripheralMove(_context.getLastPeripheralMove());
+    _context.onPeripherialMove();
   }
 
   void onNewCentralMove(String move) {

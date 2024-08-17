@@ -11,15 +11,7 @@ class Bleclient implements PeripherialClient {
   late QualifiedCharacteristic _read;
   late QualifiedCharacteristic _write;
 
-  
-
-  Bleclient(this._ble);
-
-  Future<void> send(List<int> data) async{
-    return _ble.writeCharacteristicWithResponse(_write, value: data);
-  }
-
-  void connect(DiscoveredDevice device) {
+  Bleclient(this._ble, DiscoveredDevice device) {
     _read = QualifiedCharacteristic(
         serviceId: Uuid.parse(srv),
         characteristicId: Uuid.parse(rxCh),
@@ -28,5 +20,13 @@ class Bleclient implements PeripherialClient {
         serviceId: Uuid.parse(srv),
         characteristicId: Uuid.parse(txCh),
         deviceId: device.id);
+  }
+
+  Future<void> send(List<int> data) async{
+    return _ble.writeCharacteristicWithResponse(_write, value: data);
+  }
+
+  Stream<List<int>> recieve() {
+    return _ble.subscribeToCharacteristic(_read);
   }
 } 
