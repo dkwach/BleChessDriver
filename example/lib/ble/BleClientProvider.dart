@@ -12,8 +12,7 @@ typedef VoidCallback = void Function();
 class BleClientProvider {
   final _ble = FlutterReactiveBle();
   late BleScanner _scanner = BleScanner(ble: _ble, logMessage: print);
-  late BleDeviceConnector _connector =
-      BleDeviceConnector(ble: _ble, logMessage: print);
+  late BleDeviceConnector _connector = BleDeviceConnector(ble: _ble, logMessage: print);
 
   BleClientProvider();
 

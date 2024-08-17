@@ -1,4 +1,3 @@
-
 import 'package:universal_chess_driver/Peripherial.dart';
 import 'package:universal_chess_driver/PeripherialClient.dart';
 import 'package:universal_chess_driver/Central.dart';
@@ -18,7 +17,7 @@ class CecpFeatures {
   }
 }
 
-class CecpPeripherial implements Peripherial{
+class CecpPeripherial implements Peripherial {
   final PeripherialClient _client;
   final Central _central;
   CecpFeatures _features = new CecpFeatures();
@@ -26,9 +25,7 @@ class CecpPeripherial implements Peripherial{
   late _State _state;
   bool isUserTurn = true; // todo fix this later - should be taken from game
 
-
-  CecpPeripherial(this._client, this._central)
-  {
+  CecpPeripherial(this._client, this._central) {
     _client.recieve().listen((dataChunks) => onReceiveMsgFromPeripheral(String.fromCharCodes(dataChunks)));
     transitionTo(new Init());
   }
@@ -103,8 +100,7 @@ class _State {
     _context.send("new");
     if (_context.getFeatures().setboard) {
       _context.send("setboard " + fen);
-      _context.transitionTo(
-          _context.isUserTurn ? new AskAndWaitUserMove() : new WaitApiMove());
+      _context.transitionTo(_context.isUserTurn ? new AskAndWaitUserMove() : new WaitApiMove());
     } else {
       print("Not implemented");
       throw Exception('Not implemented"');
@@ -170,9 +166,7 @@ class WaitUserMove extends _State {
   void onNewCentralMove(String move) {
     _context.send("force");
     _context.send(move);
-    _context.transitionTo(_context.isUserTurn
-        ? new AskAndWaitUserMove()
-        : new ForcedWaitApiMove());
+    _context.transitionTo(_context.isUserTurn ? new AskAndWaitUserMove() : new ForcedWaitApiMove());
   }
 }
 
@@ -192,19 +186,15 @@ class VerifyUserMove extends _State {
       _sendMoveRejectedToDevice('without promotion');
       _context.send('force');
       _context.send(move);
-      _context.transitionTo(_context.isUserTurn
-          ? new AskAndWaitUserMove()
-          : new ForcedWaitApiMove());
+      _context.transitionTo(_context.isUserTurn ? new AskAndWaitUserMove() : new ForcedWaitApiMove());
     } else {
-      _context.transitionTo(
-          _context.isUserTurn ? new AskAndWaitUserMove() : new WaitApiMove());
+      _context.transitionTo(_context.isUserTurn ? new AskAndWaitUserMove() : new WaitApiMove());
     }
   }
 
   void onMoveJudgement(bool isAccepted) {
     if (isAccepted) {
-      _context.transitionTo(
-          _context.isUserTurn ? new AskAndWaitUserMove() : new WaitApiMove());
+      _context.transitionTo(_context.isUserTurn ? new AskAndWaitUserMove() : new WaitApiMove());
     } else {
       _sendMoveRejectedToDevice("");
       _context.transitionTo(new WaitUserMove());

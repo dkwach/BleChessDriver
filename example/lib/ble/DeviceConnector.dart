@@ -27,12 +27,10 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
     _logMessage('Start connecting to $deviceId');
     _connection = _ble.connectToDevice(id: deviceId).listen(
       (update) {
-        _logMessage(
-            'ConnectionState for device $deviceId : ${update.connectionState}');
+        _logMessage('ConnectionState for device $deviceId : ${update.connectionState}');
         _deviceConnectionController.add(update);
       },
-      onError: (Object e) =>
-          _logMessage('Connecting to device $deviceId resulted in error $e'),
+      onError: (Object e) => _logMessage('Connecting to device $deviceId resulted in error $e'),
     );
   }
 

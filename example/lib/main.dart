@@ -42,31 +42,26 @@ class _MyHomePageState extends State<MyHomePage> {
   _MyHomePageState() {
     appCentral = AppCentral(chessController);
     bleProvider.connectionState.listen((event) {
-        if (event.connectionState == DeviceConnectionState.connected) {
-          var chessBoardDevice = _chessBoardsDevices
-              .firstWhere((d) => d.id.toString() == event.deviceId);
-            setState(() {
-              peripherialBoard = new CecpPeripherial(bleProvider.createClient(chessBoardDevice), appCentral);
-            });
-          }
-        else {
-          setState(() {
-            peripherialBoard = null;
-          });
-        }
+      if (event.connectionState == DeviceConnectionState.connected) {
+        var chessBoardDevice = _chessBoardsDevices.firstWhere((d) => d.id.toString() == event.deviceId);
+        setState(() {
+          peripherialBoard = new CecpPeripherial(bleProvider.createClient(chessBoardDevice), appCentral);
+        });
+      } else {
+        setState(() {
+          peripherialBoard = null;
+        });
       }
-    );
+    });
 
     chessController.addListener(() {
       if (chessController.game.history.isEmpty) return;
 
       Move lastMove = chessController.game.history.last.move;
       String lastMoveUci = lastMove.fromAlgebraic + lastMove.toAlgebraic;
-      if (lastMove.promotion != null)
-        lastMoveUci = lastMoveUci + lastMove.promotion!.name;
+      if (lastMove.promotion != null) lastMoveUci = lastMoveUci + lastMove.promotion!.name;
 
-      if (lastMoveUci != appCentral.lastPeripheralMove)
-        peripherialBoard!.move(lastMoveUci);
+      if (lastMoveUci != appCentral.lastPeripheralMove) peripherialBoard!.move(lastMoveUci);
     });
   }
 
@@ -81,12 +76,10 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget connectedBoardButtons() {
-
     return Column(
       children: [
         SizedBox(height: 25),
-        TextButton(
-            onPressed: onRequestNewGame, child: Text("Request New game")),
+        TextButton(onPressed: onRequestNewGame, child: Text("Request New game")),
       ],
     );
   }
@@ -103,25 +96,20 @@ class _MyHomePageState extends State<MyHomePage> {
                 builder: (context, AsyncSnapshot<BleScannerState> snapshot) {
                   return (snapshot.hasData && snapshot.data!.scanIsInProgress)
                       ? CircularProgressIndicator()
-                      : TextButton(
-                          child: Text("List Devices"),
-                          onPressed: () => bleProvider.scan(Bleclient.srv));
+                      : TextButton(child: Text("List Devices"), onPressed: () => bleProvider.scan(Bleclient.srv));
                 })),
         Flexible(
             child: StreamBuilder(
                 stream: bleProvider.scannerState,
                 builder: (context, AsyncSnapshot<BleScannerState> snapshot) {
-                  _chessBoardsDevices =
-                      snapshot.hasData ? snapshot.data!.discoveredDevices : [];
+                  _chessBoardsDevices = snapshot.hasData ? snapshot.data!.discoveredDevices : [];
 
                   return ListView.builder(
                       itemCount: _chessBoardsDevices.length,
                       itemBuilder: (context, index) => ListTile(
                             title: Text(_chessBoardsDevices[index].name),
-                            subtitle:
-                                Text(_chessBoardsDevices[index].id.toString()),
-                            onTap: () => bleProvider.connect(
-                                _chessBoardsDevices[index].id.toString()),
+                            subtitle: Text(_chessBoardsDevices[index].id.toString()),
+                            onTap: () => bleProvider.connect(_chessBoardsDevices[index].id.toString()),
                           ));
                 })),
         SizedBox(height: 24)

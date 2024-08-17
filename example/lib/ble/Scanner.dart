@@ -15,8 +15,7 @@ class BleScanner implements ReactiveState<BleScannerState> {
 
   final FlutterReactiveBle _ble;
   final void Function(String message) _logMessage;
-  final StreamController<BleScannerState> _stateStreamController =
-      StreamController<BleScannerState>.broadcast();
+  final StreamController<BleScannerState> _stateStreamController = StreamController<BleScannerState>.broadcast();
 
   final _devices = <DiscoveredDevice>[];
 
@@ -27,8 +26,7 @@ class BleScanner implements ReactiveState<BleScannerState> {
     _logMessage('Start ble discovery');
     _devices.clear();
     _subscription?.cancel();
-    _subscription =
-        _ble.scanForDevices(withServices: serviceIds).listen((device) {
+    _subscription = _ble.scanForDevices(withServices: serviceIds).listen((device) {
       final knownDeviceIndex = _devices.indexWhere((d) => d.id == device.id);
       if (knownDeviceIndex >= 0) {
         _devices[knownDeviceIndex] = device;

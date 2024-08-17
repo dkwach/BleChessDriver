@@ -1,7 +1,6 @@
 import 'dart:async';
 
-abstract class Central
-{
+abstract class Central {
   Future<bool> move(String uci);
   Future<String> obtainPromotedPawn();
   void indicateOutOfSync(String peripherialFen);
