@@ -1,4 +1,4 @@
 abstract class Peripherial {
-  void startNewGame(String fen, String variant);
+  void startNewGame();
   void move(String uci);
 }

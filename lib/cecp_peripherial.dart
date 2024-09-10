@@ -52,8 +52,8 @@ class CecpPeripherial implements Peripherial {
     _state.onReceiveMsgFromPeripheral(msg);
   }
 
-  void startNewGame(String fen, String variant) {
-    _state.onNewGame(fen);
+  void startNewGame() {
+    _state.onNewGame();
   }
 
   void move(String move) {
@@ -96,10 +96,10 @@ class _State {
     }
   }
 
-  void onNewGame(String fen) {
+  void onNewGame() {
     _context.send("new");
     if (_context.getFeatures().setboard) {
-      _context.send("setboard " + fen);
+      _context.send("setboard " + _context._central.fen);
       _context.transitionTo(_context.isUserTurn ? new AskAndWaitUserMove() : new WaitApiMove());
     } else {
       print("Not implemented");
