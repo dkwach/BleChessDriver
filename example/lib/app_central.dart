@@ -3,7 +3,6 @@ import 'package:universal_chess_driver/central.dart';
 
 class AppCentral implements Central {
   ChessBoardController _chessController;
-  String lastPeripheralMove = "";
 
   AppCentral(this._chessController);
 
@@ -12,11 +11,7 @@ class AppCentral implements Central {
   String? get lastMove => _lastMove();
 
   Future<bool> move(String uci) {
-    if (!isMoveLegal(uci)) return Future.value(false);
-
-    lastPeripheralMove = uci;
-    _chessController.makeMoveUci(uci: uci);
-    return Future.value(true);
+    return Future.value(_chessController.makeMoveUci(uci: uci));
   }
 
   Future<bool> isUnspefiedPromotion(String uci) {
@@ -63,7 +58,7 @@ class AppCentral implements Central {
     if (_chessController.game.history.isEmpty) return null;
 
     var lastMove = _chessController.game.history.last.move;
-    String uci = lastMove.fromAlgebraic + lastMove.fromAlgebraic;
+    String uci = lastMove.fromAlgebraic + lastMove.toAlgebraic;
     if (lastMove.promotion != null) uci += lastMove.promotion!.name;
     return uci;
   }

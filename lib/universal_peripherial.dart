@@ -3,8 +3,6 @@ import 'package:universal_chess_driver/peripherial.dart';
 import 'package:universal_chess_driver/peripherial_client.dart';
 import 'package:universal_chess_driver/utils.dart';
 
-loc_print(params) => print("proto: " + params);
-
 class FeatureSupport {
   Map<String, bool> _featureToEnabled = {
     "msg": false,
@@ -44,20 +42,20 @@ class UniversalPeripherial implements Peripherial {
   Central get central => _central;
 
   void transitionTo(_State nextState) {
-    ("Transition to:" + nextState.runtimeType.toString());
+    print("proto: " + "Transition to:" + nextState.runtimeType.toString());
     _state = nextState;
     _state.context = this;
     _state.onEnter();
   }
 
-  void send(String command) {
+  void send(String command) async {
     List<int> message = [...command.codeUnits];
-    _client.send(message);
-    loc_print("Central: " + command);
+    print("proto: " + "Central: " + command);
+    await _client.send(message);
   }
 
   void onPeripheralCmd(String cmd) {
-    loc_print("Peripheral: " + cmd);
+    print("proto: " + "Peripheral: " + cmd);
     _state.onPeripheralCmd(cmd);
   }
 
@@ -89,7 +87,7 @@ class _State {
     }
 
     if (cmd != 'nok') this._context.send('nok');
-    loc_print("Not expected $cmd!");
+    print("proto: " + "Not expected $cmd!");
   }
 
   void onNewGame() {
@@ -138,8 +136,8 @@ class _SyncVariant extends _State {
   void onEnter() {
     if (currentlySetVariant == this._context._central.variant)
       this._context.transitionTo(_SyncFen());
-
-    this._context.send("variant " + this._context._central.variant);
+    else
+      this._context.send("variant " + this._context._central.variant);
   }
 
   @override
@@ -177,7 +175,7 @@ class _SyncFen extends _State {
 class _SyncLastMove extends _State {
   @override
   void onEnter() {
-    if (_context.features.lastMove && this._context.central.lastMove != Null)
+    if (_context.features.lastMove && this._context.central.lastMove != null)
       _context.send("last_move ${this._context.central.lastMove}");
     else
       this._context.transitionTo(_Synchronised());

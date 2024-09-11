@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:universal_chess_driver/ble_client.dart';
+import 'package:universal_chess_driver/central.dart';
 import 'package:universal_chess_driver/peripherial.dart';
 // import 'package:universal_chess_driver/cecp_peripherial.dart';
 import 'package:universal_chess_driver/universal_peripherial.dart';
@@ -22,7 +23,7 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   ChessBoardController chessController = ChessBoardController();
-  late AppCentral appCentral;
+  late Central appCentral;
   late Peripherial? peripherialBoard;
 
   BleConnector get bleConnector => widget.bleConnector;
@@ -52,7 +53,6 @@ class _GameScreenState extends State<GameScreen> {
       } else if (state == BleConnectionState.connected) {
         var client = Bleclient(ble, device);
         peripherialBoard = UniversalPeripherial(client, appCentral);
-        ;
       }
     });
   }
@@ -62,17 +62,6 @@ class _GameScreenState extends State<GameScreen> {
     super.initState();
     appCentral = AppCentral(chessController);
     bleConnector.stateStream.listen(_onConnectionStateChanged);
-    chessController.addListener(() {
-      if (chessController.game.history.isEmpty) return;
-
-      Move lastMove = chessController.game.history.last.move;
-      String lastMoveUci = lastMove.fromAlgebraic + lastMove.toAlgebraic;
-      if (lastMove.promotion != null)
-        lastMoveUci = lastMoveUci + lastMove.promotion!.name;
-
-      if (lastMoveUci != appCentral.lastPeripheralMove)
-        peripherialBoard?.move(lastMoveUci);
-    });
     bleConnector.connect();
   }
 
@@ -85,6 +74,10 @@ class _GameScreenState extends State<GameScreen> {
           controller: chessController,
           boardColor: BoardColor.darkBrown,
           boardOrientation: PlayerColor.white,
+          onMove: () {
+            String? lastMove = appCentral.lastMove;
+            if (lastMove != null) peripherialBoard?.move(lastMove);
+          },
         )
       ],
     );
