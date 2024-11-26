@@ -99,6 +99,16 @@ class _State {
   }
 }
 
+class _ExpectAck extends _State {
+  @override
+  void onPeripheralCmd(String cmd) {
+    if (cmd == 'ok' || cmd == 'nok')
+      this._context.transitionTo(_Synchronised());
+    else
+      super.onPeripheralCmd(cmd);
+  }
+}
+
 class _Idle extends _State {}
 
 class _FeatureExchange extends _State {
@@ -172,21 +182,13 @@ class _SyncFen extends _State {
   }
 }
 
-class _SyncLastMove extends _State {
+class _SyncLastMove extends _ExpectAck {
   @override
   void onEnter() {
     if (_context.features.lastMove && this._context.central.lastMove != null)
       _context.send("last_move ${this._context.central.lastMove}");
     else
       this._context.transitionTo(_Synchronised());
-  }
-
-  @override
-  void onPeripheralCmd(String cmd) {
-    if (cmd == 'ok' || cmd == 'nok')
-      this._context.transitionTo(_Synchronised());
-    else
-      super.onPeripheralCmd(cmd);
   }
 }
 
@@ -230,53 +232,37 @@ class _Unsynchronised extends _State {
   }
 }
 
-class _PeripherialMove extends _State {
+class _PeripherialMove extends _ExpectAck {
   String _requestedMove;
 
   _PeripherialMove(this._requestedMove);
 
   @override
-  void onEnter() {
-    this._context.central.isUnspefiedPromotion(_requestedMove).then((isProm) {
-      if (isProm)
-        _context.central.obtainPromotedPawn().then((promotedPawn) {
-          var move = _requestedMove + promotedPawn;
-          this._context.central.move(move).then((isMoveAccepted) {
-            if (isMoveAccepted)
-              this._context.send("promote $move");
-            else {
-              this._context.send("nok");
-              this._context.transitionTo(_Synchronised());
-            }
-          });
-        });
-      else {
-        this._context.central.move(_requestedMove).then((isMoveAccepted) {
-          if (isMoveAccepted)
-            this._context.send("ok");
-          else
-            this._context.send("nok");
-          this._context.transitionTo(_Synchronised());
-        });
-      }
-    });
-  }
-
-  @override
-  void onPeripheralCmd(String cmd) {
-    if (cmd == 'ok' || cmd == 'nok')
+  void onEnter() async {
+    if (await this._context.central.isUnspefiedPromotion(_requestedMove))
+      this._context.transitionTo(_PeripherialMoveWithPromotion(_requestedMove));
+    else {
+      bool isMoveAccepted = await this._context.central.move(_requestedMove);
+      this._context.send(isMoveAccepted ? "ok" : "nok");
       this._context.transitionTo(_Synchronised());
-    else
-      super.onPeripheralCmd(cmd);
+    }
   }
 }
 
-class _CentralMove extends _State {
+class _PeripherialMoveWithPromotion extends _PeripherialMove {
+  _PeripherialMoveWithPromotion(String requestedMove) : super(requestedMove) {}
+
   @override
-  void onPeripheralCmd(String cmd) {
-    if (cmd == 'ok' || cmd == 'nok')
+  void onEnter() async {
+    var move = _requestedMove + await _context.central.obtainPromotedPawn();
+    bool isMoveAccepted = await this._context.central.move(move);
+    if (isMoveAccepted)
+      this._context.send("promote $move");
+    else {
+      this._context.send("nok");
       this._context.transitionTo(_Synchronised());
-    else
-      super.onPeripheralCmd(cmd);
+    }
   }
 }
+
+class _CentralMove extends _ExpectAck {}

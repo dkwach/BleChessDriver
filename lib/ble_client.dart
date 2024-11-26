@@ -1,4 +1,6 @@
-import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
+import 'dart:typed_data';
+
+import 'package:ble_backend/ble_serial.dart';
 import 'package:universal_chess_driver/peripherial_client.dart';
 
 class Bleclient implements PeripherialClient {
@@ -6,22 +8,16 @@ class Bleclient implements PeripherialClient {
   static final String rxCh = "f535147e-b2c9-11ec-a0c2-8bbd706ec4e6";
   static final String txCh = "f53513ca-b2c9-11ec-a0c1-639b8957db99";
 
-  FlutterReactiveBle _ble;
-  late QualifiedCharacteristic _read;
-  late QualifiedCharacteristic _write;
+  BleSerial _serial;
 
-  Bleclient(this._ble, DiscoveredDevice device) {
-    _read =
-        QualifiedCharacteristic(serviceId: Uuid.parse(srv), characteristicId: Uuid.parse(rxCh), deviceId: device.id);
-    _write =
-        QualifiedCharacteristic(serviceId: Uuid.parse(srv), characteristicId: Uuid.parse(txCh), deviceId: device.id);
-  }
+  Bleclient(this._serial);
 
   Future<void> send(List<int> data) async {
-    return _ble.writeCharacteristicWithResponse(_write, value: data);
+    return _serial.send(data: Uint8List.fromList(data));
   }
 
   Stream<List<int>> recieve() {
-    return _ble.subscribeToCharacteristic(_read);
+    _serial.startNotifications();
+    return _serial.dataStream;
   }
 }

@@ -23,14 +23,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  ble_backend_screens: ^1.0.2
   universal_chess_driver:
     path: ../
   flutter_chess_board: 
     git:
       url: https://github.com/dkwach/flutter_chess_board
-  ble_device_provider:
-    git:
-      url: https://github.com/dkwach/ble_device_provider 
+
 
 
   # The following adds the Cupertino Icons font to your application.

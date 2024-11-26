@@ -9,4 +9,5 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_reactive_ble: ^5.3.1
+  ble_backend: ^1.2.3
+  ble_backend_factory: ^1.1.3

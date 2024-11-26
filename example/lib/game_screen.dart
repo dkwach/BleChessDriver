@@ -1,34 +1,38 @@
-import 'package:ble_device_provider/ble_connector.dart';
+import 'dart:async';
+
+import 'package:ble_backend/ble_connector.dart';
+import 'package:ble_backend/ble_peripheral.dart';
 import 'package:example/app_central.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
-import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:universal_chess_driver/ble_client.dart';
 import 'package:universal_chess_driver/central.dart';
 import 'package:universal_chess_driver/peripherial.dart';
-// import 'package:universal_chess_driver/cecp_peripherial.dart';
 import 'package:universal_chess_driver/universal_peripherial.dart';
 
 class GameScreen extends StatefulWidget {
-  GameScreen(FlutterReactiveBle this.ble, {required this.device, super.key})
-      : bleConnector = BleConnector(ble, deviceId: device.id);
+  GameScreen({
+    required this.bleConnector,
+    required this.blePeripheral,
+    super.key,
+  });
 
-  final FlutterReactiveBle ble;
-  final DiscoveredDevice device;
   final BleConnector bleConnector;
+  final BlePeripheral blePeripheral;
 
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
 
 class _GameScreenState extends State<GameScreen> {
+  StreamSubscription? _subscription;
   ChessBoardController chessController = ChessBoardController();
   late Central appCentral;
   late Peripherial? peripherialBoard;
 
+  BlePeripheral get blePeripheral => widget.blePeripheral;
   BleConnector get bleConnector => widget.bleConnector;
-  FlutterReactiveBle get ble => widget.ble;
-  DiscoveredDevice get device => widget.device;
+  BleConnectorStatus get connectionStatus => bleConnector.state;
 
   void onRequestNewGame() {
     chessController.resetBoard();
@@ -45,13 +49,15 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  void _onConnectionStateChanged(BleConnectionState state) {
+  void _onConnectionStateChanged(BleConnectorStatus state) {
     setState(() {
-      if (state == BleConnectionState.disconnected) {
-        bleConnector.findAndConnect(Uuid.parse(Bleclient.srv));
+      if (state == BleConnectorStatus.disconnected)
         peripherialBoard = null;
-      } else if (state == BleConnectionState.connected) {
-        var client = Bleclient(ble, device);
+      else if (state == BleConnectorStatus.connected) {
+        var client = Bleclient(bleConnector.createSerial(
+            serviceId: Bleclient.srv,
+            rxCharacteristicId: Bleclient.txCh,
+            txCharacteristicId: Bleclient.rxCh));
         peripherialBoard = UniversalPeripherial(client, appCentral);
       }
     });
@@ -61,8 +67,18 @@ class _GameScreenState extends State<GameScreen> {
   void initState() {
     super.initState();
     appCentral = AppCentral(chessController);
-    bleConnector.stateStream.listen(_onConnectionStateChanged);
+    _subscription = bleConnector.stateStream.listen(_onConnectionStateChanged);
     bleConnector.connect();
+  }
+
+  @override
+  void dispose() {
+    () async {
+      await bleConnector.disconnect();
+      await _subscription?.cancel();
+    }.call();
+    bleConnector.dispose();
+    super.dispose();
   }
 
   @override
