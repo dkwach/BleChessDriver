@@ -17,28 +17,30 @@ class UniversalDriverDemoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        title: 'Universal chess driver example',
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.indigo,
-            brightness: Brightness.light,
-          ),
+      title: 'Universal chess driver example',
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.indigo,
+          brightness: Brightness.light,
         ),
-        darkTheme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.indigo,
-            brightness: Brightness.dark,
-          ),
+      ),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.indigo,
+          brightness: Brightness.dark,
         ),
-        home: ScannerScreen(
-            bleCentral: bleCentral,
-            bleScanner: bleCentral.createScanner(serviceIds: [Bleclient.srv]),
-            createStatusScreen: (bleCentral) =>
-                StatusScreen(bleCentral: bleCentral),
-            createPeripheralScreen: (blePeripheral) => GameScreen(
-                bleConnector: blePeripheral.createConnector(),
-                blePeripheral: blePeripheral)));
+      ),
+      home: ScannerScreen(
+          bleCentral: bleCentral,
+          bleScanner: bleCentral.createScanner(serviceIds: [Bleclient.srv]),
+          createStatusScreen: (bleCentral) =>
+              StatusScreen(bleCentral: bleCentral),
+          createPeripheralScreen: (blePeripheral) => GameScreen(
+              bleConnector: blePeripheral.createConnector(),
+              blePeripheral: blePeripheral)),
+      debugShowCheckedModeBanner: false,
+    );
   }
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:ble_backend/ble_connector.dart';
 import 'package:ble_backend/ble_peripheral.dart';
+import 'package:ble_backend_screens/ui/ui_consts.dart';
 import 'package:example/app_central.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
@@ -34,19 +35,9 @@ class _GameScreenState extends State<GameScreen> {
   BleConnector get bleConnector => widget.bleConnector;
   BleConnectorStatus get connectionStatus => bleConnector.state;
 
-  void onRequestNewGame() {
+  void _startNewRound() {
     chessController.resetBoard();
     peripherialBoard?.startNewGame();
-  }
-
-  Widget connectedBoardButtons() {
-    return Column(
-      children: [
-        SizedBox(height: 25),
-        TextButton(
-            onPressed: onRequestNewGame, child: Text("Request New game")),
-      ],
-    );
   }
 
   void _onConnectionStateChanged(BleConnectorStatus state) {
@@ -81,30 +72,86 @@ class _GameScreenState extends State<GameScreen> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    Widget content = Column(
-      children: [
-        connectedBoardButtons(),
-        ChessBoard(
-          controller: chessController,
-          boardColor: BoardColor.darkBrown,
-          boardOrientation: PlayerColor.white,
-          onMove: () {
-            String? lastMove = appCentral.lastMove;
-            if (lastMove != null) peripherialBoard?.move(lastMove);
-          },
-        )
-      ],
-    );
+  Widget _buildChessBoardWidget() => ChessBoard(
+        controller: chessController,
+        boardColor: BoardColor.darkBrown,
+        boardOrientation: PlayerColor.white,
+        onMove: () {
+          String? lastMove = appCentral.lastMove;
+          if (lastMove != null) peripherialBoard?.move(lastMove);
+        },
+      );
 
-    return DefaultTabController(
-        length: 2,
-        child: Scaffold(
-            appBar: PreferredSize(
-              preferredSize: const Size.fromHeight(100),
-              child: AppBar(title: Text("Universal chess board example")),
+  Widget _buildNewRoundButton() => SizedBox(
+        height: buttonHeight,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: FilledButton.icon(
+                icon: const Icon(Icons.update_rounded),
+                label: Text('New round'),
+                onPressed: _startNewRound,
+              ),
             ),
-            body: content));
-  }
+          ],
+        ),
+      );
+
+  Widget _buildPortrait() => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildChessBoardWidget(),
+              ],
+            ),
+          ),
+          const SizedBox(height: screenPortraitSplitter),
+          _buildNewRoundButton(),
+        ],
+      );
+
+  Widget _buildLandscape() => Row(
+        children: [
+          Expanded(
+            child: Column(
+              children: [
+                _buildChessBoardWidget(),
+              ],
+            ),
+          ),
+          const SizedBox(width: screenLandscapeSplitter),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const SizedBox(height: 20),
+                _buildNewRoundButton(),
+              ],
+            ),
+          ),
+        ],
+      );
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        primary: MediaQuery.of(context).orientation == Orientation.portrait,
+        appBar: AppBar(
+          title: Text(blePeripheral.name ?? ''),
+          centerTitle: true,
+        ),
+        body: SafeArea(
+          minimum: const EdgeInsets.all(screenPadding),
+          child: OrientationBuilder(
+            builder: (context, orientation) =>
+                orientation == Orientation.portrait
+                    ? _buildPortrait()
+                    : _buildLandscape(),
+          ),
+        ),
+      );
 }
