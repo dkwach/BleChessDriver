@@ -23,7 +23,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  ble_backend_screens: ^1.0.2
+  ble_backend_screens: ^1.1.0
   universal_chess_driver:
     path: ../
   flutter_chess_board: 
