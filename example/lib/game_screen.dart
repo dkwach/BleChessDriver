@@ -94,7 +94,7 @@ class _GameScreenState extends State<GameScreen> {
           children: [
             Expanded(
               child: FilledButton.icon(
-                icon: const Icon(Icons.update_rounded),
+                icon: const Icon(Icons.refresh_rounded),
                 label: Text('New round'),
                 onPressed: _startNewRound,
               ),
@@ -103,38 +103,47 @@ class _GameScreenState extends State<GameScreen> {
         ),
       );
 
-  Widget _buildPortrait() => Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: Center(
-              child: _buildChessBoardWidget(),
+  Widget _buildPortrait() => Padding(
+        padding: EdgeInsets.symmetric(
+          vertical: screenPadding,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Center(
+                child: _buildChessBoardWidget(),
+              ),
             ),
-          ),
-          const SizedBox(height: screenPortraitSplitter),
-          _buildNewRoundButton(),
-        ],
+            const SizedBox(height: screenPortraitSplitter),
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: screenPadding,
+              ),
+              child: _buildNewRoundButton(),
+            ),
+          ],
+        ),
       );
 
-  Widget _buildLandscape() => Row(
-        children: [
-          Expanded(
-            child: Center(
-              child: _buildChessBoardWidget(),
+  Widget _buildLandscape() => Padding(
+        padding: const EdgeInsets.all(screenPadding),
+        child: Row(
+          children: [
+            Expanded(
+              child: Center(
+                child: _buildChessBoardWidget(),
+              ),
             ),
-          ),
-          const SizedBox(width: screenLandscapeSplitter),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const SizedBox(height: 20),
-                _buildNewRoundButton(),
-              ],
+            const SizedBox(width: screenLandscapeSplitter),
+            Expanded(
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: _buildNewRoundButton(),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       );
 
   @override
@@ -145,7 +154,6 @@ class _GameScreenState extends State<GameScreen> {
           centerTitle: true,
         ),
         body: SafeArea(
-          minimum: const EdgeInsets.all(screenPadding),
           child: OrientationBuilder(
             builder: (context, orientation) =>
                 orientation == Orientation.portrait
