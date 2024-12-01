@@ -102,11 +102,8 @@ class _GameScreenState extends State<GameScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildChessBoardWidget(),
-              ],
+            child: Center(
+              child: _buildChessBoardWidget(),
             ),
           ),
           const SizedBox(height: screenPortraitSplitter),
@@ -117,10 +114,8 @@ class _GameScreenState extends State<GameScreen> {
   Widget _buildLandscape() => Row(
         children: [
           Expanded(
-            child: Column(
-              children: [
-                _buildChessBoardWidget(),
-              ],
+            child: Center(
+              child: _buildChessBoardWidget(),
             ),
           ),
           const SizedBox(width: screenLandscapeSplitter),
