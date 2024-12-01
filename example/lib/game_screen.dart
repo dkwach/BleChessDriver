@@ -45,10 +45,15 @@ class _GameScreenState extends State<GameScreen> {
       if (state == BleConnectorStatus.disconnected)
         peripherialBoard = null;
       else if (state == BleConnectorStatus.connected) {
-        var client = Bleclient(bleConnector.createSerial(
-            serviceId: Bleclient.srv,
-            rxCharacteristicId: Bleclient.txCh,
-            txCharacteristicId: Bleclient.rxCh));
+        bleConnector.createMtu().request(mtu: BleClient.mtu).then(
+            (negotiatedMtu) => negotiatedMtu < BleClient.mtu
+                ? throw RangeError(
+                    'Mtu ($negotiatedMtu) is less than the required minimum (${BleClient.mtu}).')
+                : null);
+        var client = BleClient(bleConnector.createSerial(
+            serviceId: BleClient.srv,
+            rxCharacteristicId: BleClient.rxCh,
+            txCharacteristicId: BleClient.txCh));
         peripherialBoard = UniversalPeripherial(client, appCentral);
       }
     });

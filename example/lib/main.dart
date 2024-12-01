@@ -34,7 +34,7 @@ class UniversalDriverDemoApp extends StatelessWidget {
       ),
       home: ScannerScreen(
           bleCentral: bleCentral,
-          bleScanner: bleCentral.createScanner(serviceIds: [Bleclient.srv]),
+          bleScanner: bleCentral.createScanner(serviceIds: [BleClient.srv]),
           createStatusScreen: (bleCentral) =>
               StatusScreen(bleCentral: bleCentral),
           createPeripheralScreen: (blePeripheral) => GameScreen(
