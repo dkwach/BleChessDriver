@@ -16,10 +16,7 @@ class AppCentral implements Central {
 
   Future<bool> isUnspefiedPromotion(String uci) {
     var srcPiece = _chessController.game.get(uci.substring(0, 2));
-    var dstPiece = _chessController.game.get(uci.substring(2, 4));
-    if (srcPiece?.type.name != "p" ||
-        dstPiece?.color == srcPiece?.color ||
-        _chessController.isInCheck()) return Future.value(false);
+    if (srcPiece?.type.name != "p") return Future.value(false);
 
     if ((_chessController.game.turn == Chess.WHITE &&
             uci[1] == "7" &&
