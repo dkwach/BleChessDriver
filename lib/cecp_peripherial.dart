@@ -1,4 +1,6 @@
-import 'package:universal_chess_driver/UniversalCommunicationClient.dart';
+import 'package:universal_chess_driver/central.dart';
+import 'package:universal_chess_driver/peripherial.dart';
+import 'package:universal_chess_driver/peripherial_client.dart';
 
 class CecpFeatures {
   bool setboard = false;
@@ -15,17 +17,16 @@ class CecpFeatures {
   }
 }
 
-class Cecp {
-  final UniversalCommunicationClient _client;
+class CecpPeripherial implements Peripherial {
+  final PeripherialClient _client;
+  final Central _central;
   CecpFeatures _features = new CecpFeatures();
-  String _lastPeripheralMove;
-  _State _state;
+  late String _lastPeripheralMove;
+  late _State _state;
   bool isUserTurn = true; // todo fix this later - should be taken from game
-  Function _onNewPeripheralMove;
 
-  Cecp(this._client, this._onNewPeripheralMove);
-
-  void init() {
+  CecpPeripherial(this._client, this._central) {
+    _client.recieve().listen((dataChunks) => onReceiveMsgFromPeripheral(String.fromCharCodes(dataChunks)));
     transitionTo(new Init());
   }
 
@@ -36,8 +37,8 @@ class Cecp {
     _state.onEnter();
   }
 
-  void notifyAboutPeripheralMove(String move) {
-    _onNewPeripheralMove(move);
+  void onPeripherialMove() {
+    _central.move(getLastPeripheralMove()).then((value) => onMoveJudgement(value));
   }
 
   void send(String command) {
@@ -47,15 +48,15 @@ class Cecp {
   }
 
   void onReceiveMsgFromPeripheral(String msg) {
-    print("peripheral: " + msg);
+    print("Peripheral: " + msg);
     _state.onReceiveMsgFromPeripheral(msg);
   }
 
-  void onNewGame(String fen) {
-    _state.onNewGame(fen);
+  void startNewGame() {
+    _state.onNewGame();
   }
 
-  void onNewCentralMove(String move) {
+  void move(String move) {
     _state.onNewCentralMove(move);
   }
 
@@ -81,9 +82,9 @@ class Cecp {
 }
 
 class _State {
-  Cecp _context;
+  late CecpPeripherial _context;
 
-  void setContext(Cecp context) {
+  void setContext(CecpPeripherial context) {
     _context = context;
   }
 
@@ -95,12 +96,11 @@ class _State {
     }
   }
 
-  void onNewGame(String fen) {
+  void onNewGame() {
     _context.send("new");
     if (_context.getFeatures().setboard) {
-      _context.send("setboard " + fen);
-      _context.transitionTo(
-          _context.isUserTurn ? new AskAndWaitUserMove() : new WaitApiMove());
+      _context.send("setboard " + _context._central.fen);
+      _context.transitionTo(_context.isUserTurn ? new AskAndWaitUserMove() : new WaitApiMove());
     } else {
       print("Not implemented");
       throw Exception('Not implemented"');
@@ -166,9 +166,7 @@ class WaitUserMove extends _State {
   void onNewCentralMove(String move) {
     _context.send("force");
     _context.send(move);
-    _context.transitionTo(_context.isUserTurn
-        ? new AskAndWaitUserMove()
-        : new ForcedWaitApiMove());
+    _context.transitionTo(_context.isUserTurn ? new AskAndWaitUserMove() : new ForcedWaitApiMove());
   }
 }
 
@@ -180,7 +178,7 @@ class AskAndWaitUserMove extends WaitUserMove {
 
 class VerifyUserMove extends _State {
   onEnter() {
-    _context.notifyAboutPeripheralMove(_context.getLastPeripheralMove());
+    _context.onPeripherialMove();
   }
 
   void onNewCentralMove(String move) {
@@ -188,19 +186,15 @@ class VerifyUserMove extends _State {
       _sendMoveRejectedToDevice('without promotion');
       _context.send('force');
       _context.send(move);
-      _context.transitionTo(_context.isUserTurn
-          ? new AskAndWaitUserMove()
-          : new ForcedWaitApiMove());
+      _context.transitionTo(_context.isUserTurn ? new AskAndWaitUserMove() : new ForcedWaitApiMove());
     } else {
-      _context.transitionTo(
-          _context.isUserTurn ? new AskAndWaitUserMove() : new WaitApiMove());
+      _context.transitionTo(_context.isUserTurn ? new AskAndWaitUserMove() : new WaitApiMove());
     }
   }
 
   void onMoveJudgement(bool isAccepted) {
     if (isAccepted) {
-      _context.transitionTo(
-          _context.isUserTurn ? new AskAndWaitUserMove() : new WaitApiMove());
+      _context.transitionTo(_context.isUserTurn ? new AskAndWaitUserMove() : new WaitApiMove());
     } else {
       _sendMoveRejectedToDevice("");
       _context.transitionTo(new WaitUserMove());
