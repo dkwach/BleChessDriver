@@ -3,34 +3,12 @@ import 'package:universal_chess_driver/peripherial.dart';
 import 'package:universal_chess_driver/peripherial_client.dart';
 import 'package:universal_chess_driver/utils.dart';
 
-class FeatureSupport {
-  Map<String, bool> _featureToEnabled = {
-    "msg": false,
-    "last_move": false,
-  };
-
-  bool get msg => _featureToEnabled["msg"]!;
-  set msg(bool value) {
-    _featureToEnabled["msg"] = value;
-  }
-
-  bool get lastMove => _featureToEnabled["last_move"]!;
-  set lastMove(bool value) {
-    _featureToEnabled["last_move"] = value;
-  }
-
-  void operator []=(String key, bool value) {
-    _featureToEnabled[key] = value;
-  }
-
-  Iterable<String> get keys => _featureToEnabled.keys;
-}
-
-class UniversalPeripherial implements Peripherial {
+class UniversalPeripherial implements Peripheral {
   final PeripherialClient _client;
   final Central _central;
-  final FeatureSupport _features = new FeatureSupport();
   late _State _state;
+  List<String> _features;
+  List<String> _variants;
 
   UniversalPeripherial(this._client, this._central) {
     _client.recieve().listen(
@@ -38,7 +16,8 @@ class UniversalPeripherial implements Peripherial {
     transitionTo(new _FeatureExchange());
   }
 
-  FeatureSupport get features => _features;
+  List<String> get features => _features;
+  List<String> get variants => _variants;
   Central get central => _central;
 
   void transitionTo(_State nextState) {
@@ -60,13 +39,19 @@ class UniversalPeripherial implements Peripherial {
   }
 
   @override
-  void startNewGame() {
+  void onCentralRoundBegin() {
     _state.onNewGame();
   }
 
   @override
-  void move(String move) {
-    _state.onNewCentralMove(move);
+  void onCentralRoundChange() {
+    if (_central.round.lastMove != null)
+      _state.onNewCentralMove(_central.round.lastMove!);
+  }
+
+  @override
+  void onPeripheralMoveRejected() {
+    _state.onPeripheralMoveRejected();
   }
 }
 
@@ -80,8 +65,9 @@ class _State {
   void onEnter() {}
 
   void onPeripheralCmd(String cmd) {
-    if (this._context.features.msg && cmd.startsWith("msg")) {
-      this._context.central.showMsg(getCommandParams(cmd));
+    if (this._context.central.features.contains("msg") &&
+        cmd.startsWith("msg")) {
+      this._context.central.onPeripheralMsg(getCommandParams(cmd));
       this._context.send('ok');
       return;
     }
@@ -95,6 +81,10 @@ class _State {
   }
 
   void onNewCentralMove(String move) {
+    this._context.transitionTo(_SyncVariant());
+  }
+
+  void onPeripheralMoveRejected() {
     this._context.transitionTo(_SyncVariant());
   }
 }
@@ -116,7 +106,7 @@ class _FeatureExchange extends _State {
 
   @override
   void onEnter() {
-    currentFeature = this._context.features.keys.iterator;
+    currentFeature = this._context.central.features.iterator;
     moveToNextFeature();
   }
 
@@ -130,9 +120,9 @@ class _FeatureExchange extends _State {
   @override
   void onPeripheralCmd(String cmd) {
     if (cmd == 'ok')
-      this._context.features[currentFeature.current] = true;
+      this._context._features.add(currentFeature.current);
     else if (cmd == 'nok')
-      this._context.features[currentFeature.current] = false;
+      print("${currentFeature.current} not supported by peripherial");
     else
       super.onPeripheralCmd(cmd);
 
@@ -144,10 +134,11 @@ class _SyncVariant extends _State {
   static String? currentlySetVariant;
   @override
   void onEnter() {
-    if (currentlySetVariant == this._context._central.variant)
+    var central_variant = this._context._central.round.variant;
+    if (central_variant == null || currentlySetVariant == central_variant)
       this._context.transitionTo(_SyncFen());
     else
-      this._context.send("variant " + this._context._central.variant);
+      this._context.send("variant " + central_variant);
   }
 
   @override
@@ -156,6 +147,7 @@ class _SyncVariant extends _State {
       currentlySetVariant = this
           ._context
           ._central
+          .round
           .variant; //todo what when variant is changed on central in meantime?
       this._context.transitionTo(_SyncFen());
     } else if (cmd == 'nok')
@@ -168,7 +160,10 @@ class _SyncVariant extends _State {
 class _SyncFen extends _State {
   @override
   void onEnter() {
-    _context.send("fen ${this._context.central.fen}");
+    if (this._context.central.round.fen == null)
+      this._context.transitionTo(_SyncLastMove());
+
+    _context.send("fen ${this._context.central.round.fen}");
   }
 
   @override
@@ -185,8 +180,9 @@ class _SyncFen extends _State {
 class _SyncLastMove extends _ExpectAck {
   @override
   void onEnter() {
-    if (_context.features.lastMove && this._context.central.lastMove != null)
-      _context.send("last_move ${this._context.central.lastMove}");
+    if (this._context.central.features.contains("last_move") &&
+        this._context.central.round.lastMove != null)
+      _context.send("last_move ${this._context.central.round.lastMove}");
     else
       this._context.transitionTo(_Synchronised());
   }
@@ -199,7 +195,8 @@ class _Synchronised extends _State {
       this._context.transitionTo(_PeripherialMove(getCommandParams(cmd)));
     } else if (cmd.startsWith("fen")) {
       var fen = getCommandParams(cmd);
-      if (areFensSame(fen, this._context.central.fen))
+      if (this._context.central.round.fen != null &&
+          areFensSame(fen, this._context.central.round.fen!))
         this._context.send('ok');
       else {
         this._context.send('nok');
@@ -221,7 +218,8 @@ class _Unsynchronised extends _State {
   void onPeripheralCmd(String cmd) {
     if (cmd.startsWith("fen")) {
       var fen = getCommandParams(cmd);
-      if (areFensSame(fen, this._context.central.fen)) {
+      if (this._context.central.round.fen != null &&
+          areFensSame(fen, this._context.central.round.fen!)) {
         this._context.send('ok');
         this._context.transitionTo(_SyncLastMove());
       } else {
@@ -239,13 +237,30 @@ class _PeripherialMove extends _ExpectAck {
 
   @override
   void onEnter() async {
-    if (await this._context.central.isUnspefiedPromotion(_requestedMove))
-      this._context.transitionTo(_PeripherialMoveWithPromotion(_requestedMove));
-    else {
-      bool isMoveAccepted = await this._context.central.move(_requestedMove);
-      this._context.send(isMoveAccepted ? "ok" : "nok");
+    this._context.central.onPeripheralMove(_requestedMove);
+  }
+
+  @override
+  onNewCentralMove(String move) {
+    if (_requestedMove == move) {
+      this._context.send("ok");
       this._context.transitionTo(_Synchronised());
     }
+
+    bool isPromotionOnCentral = move.length == 5;
+    bool isRequestedPromotion = _requestedMove.length == 5;
+    if (isPromotionOnCentral && !isRequestedPromotion) {
+      this._context.transitionTo(_PeripherialMoveWithPromotion(move));
+    }
+
+    print("It shouln't happen");
+    this._context.transitionTo(_Unsynchronised());
+  }
+
+  @override
+  void onPeripheralMoveRejected() {
+    this._context.send("nok");
+    this._context.transitionTo(_Synchronised());
   }
 }
 
@@ -254,14 +269,7 @@ class _PeripherialMoveWithPromotion extends _PeripherialMove {
 
   @override
   void onEnter() async {
-    var move = _requestedMove + await _context.central.obtainPromotedPawn();
-    bool isMoveAccepted = await this._context.central.move(move);
-    if (isMoveAccepted)
-      this._context.send("promote $move");
-    else {
-      this._context.send("nok");
-      this._context.transitionTo(_Synchronised());
-    }
+    this._context.send("promote $_requestedMove");
   }
 }
 
