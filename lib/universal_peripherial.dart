@@ -3,35 +3,33 @@ import 'package:universal_chess_driver/peripherial.dart';
 import 'package:universal_chess_driver/peripherial_client.dart';
 import 'package:universal_chess_driver/utils.dart';
 
-class UniversalPeripherial implements Peripheral {
+class UniversalPeripheralRound implements PeripherialRound {
+  String? get fen => null;
+  bool? get isSynchronized => null;
+}
+
+class UniversalPeripherial implements Peripherial {
   final PeripherialClient _client;
   final Central _central;
   late _State _state;
-  List<String> _features;
-  List<String> _variants;
+  List<String> _features = [];
+  List<String> _variants = [];
 
   UniversalPeripherial(this._client, this._central) {
     _client.recieve().listen(
         (dataChunks) => onPeripheralCmd(String.fromCharCodes(dataChunks)));
-    transitionTo(new _FeatureExchange());
+    transitionTo(new _IterableExchange(
+        _central.features.iterator,
+        "feature",
+        _IterableExchange(
+            _central.variants.iterator, "variant", _Idle(), this._variants),
+        this._features));
   }
 
   List<String> get features => _features;
   List<String> get variants => _variants;
   Central get central => _central;
-
-  void transitionTo(_State nextState) {
-    print("proto: " + "Transition to:" + nextState.runtimeType.toString());
-    _state = nextState;
-    _state.context = this;
-    _state.onEnter();
-  }
-
-  void send(String command) async {
-    List<int> message = [...command.codeUnits];
-    print("proto: " + "Central: " + command);
-    await _client.send(message);
-  }
+  PeripherialRound get round => new UniversalPeripheralRound();
 
   void onPeripheralCmd(String cmd) {
     print("proto: " + "Peripheral: " + cmd);
@@ -52,6 +50,19 @@ class UniversalPeripherial implements Peripheral {
   @override
   void onPeripheralMoveRejected() {
     _state.onPeripheralMoveRejected();
+  }
+
+  void transitionTo(_State nextState) {
+    print("proto: " + "Transition to:" + nextState.runtimeType.toString());
+    _state = nextState;
+    _state.context = this;
+    _state.onEnter();
+  }
+
+  void send(String command) async {
+    List<int> message = [...command.codeUnits];
+    print("proto: " + "Central: " + command);
+    await _client.send(message);
   }
 }
 
@@ -101,57 +112,61 @@ class _ExpectAck extends _State {
 
 class _Idle extends _State {}
 
-class _FeatureExchange extends _State {
-  late Iterator<String> currentFeature;
+class _IterableExchange extends _State {
+  late List<String> result;
+  late Iterator<String> iter;
+  late String key;
+  late _State next;
+
+  _IterableExchange(this.iter, this.key, this.next, this.result) {}
 
   @override
   void onEnter() {
-    currentFeature = this._context.central.features.iterator;
-    moveToNextFeature();
+    moveToNext();
   }
 
-  void moveToNextFeature() {
-    if (!currentFeature.moveNext())
-      this._context.transitionTo(_Idle());
+  void moveToNext() {
+    if (!iter.moveNext())
+      this._context.transitionTo(next);
     else
-      this._context.send("feature " + currentFeature.current);
+      this._context.send("$key ${iter.current}");
   }
 
   @override
   void onPeripheralCmd(String cmd) {
     if (cmd == 'ok')
-      this._context._features.add(currentFeature.current);
+      this.result.add(iter.current);
     else if (cmd == 'nok')
-      print("${currentFeature.current} not supported by peripherial");
+      print("${iter.current} not supported by peripherial");
     else
       super.onPeripheralCmd(cmd);
 
-    moveToNextFeature();
+    moveToNext();
   }
 }
 
 class _SyncVariant extends _State {
-  static String? currentlySetVariant;
+  static String? peripherialVariant = null;
+  late String requestedVariant;
   @override
   void onEnter() {
-    var central_variant = this._context._central.round.variant;
-    if (central_variant == null || currentlySetVariant == central_variant)
+    if (this._context._central.round.variant == null)
+      this._context.transitionTo(_Unsynchronised());
+
+    requestedVariant = this._context._central.round.variant!;
+    if (peripherialVariant == requestedVariant)
       this._context.transitionTo(_SyncFen());
     else
-      this._context.send("variant " + central_variant);
+      this._context.send("variant " + requestedVariant);
   }
 
   @override
   void onPeripheralCmd(String cmd) {
     if (cmd == 'ok') {
-      currentlySetVariant = this
-          ._context
-          ._central
-          .round
-          .variant; //todo what when variant is changed on central in meantime?
+      peripherialVariant = requestedVariant;
       this._context.transitionTo(_SyncFen());
     } else if (cmd == 'nok')
-      this._context.transitionTo(_Idle());
+      this._context.transitionTo(_Unsynchronised());
     else
       super.onPeripheralCmd(cmd);
   }
@@ -161,7 +176,7 @@ class _SyncFen extends _State {
   @override
   void onEnter() {
     if (this._context.central.round.fen == null)
-      this._context.transitionTo(_SyncLastMove());
+      this._context.transitionTo(_Unsynchronised());
 
     _context.send("fen ${this._context.central.round.fen}");
   }
@@ -245,12 +260,14 @@ class _PeripherialMove extends _ExpectAck {
     if (_requestedMove == move) {
       this._context.send("ok");
       this._context.transitionTo(_Synchronised());
+      return;
     }
 
     bool isPromotionOnCentral = move.length == 5;
     bool isRequestedPromotion = _requestedMove.length == 5;
     if (isPromotionOnCentral && !isRequestedPromotion) {
       this._context.transitionTo(_PeripherialMoveWithPromotion(move));
+      return;
     }
 
     print("It shouln't happen");

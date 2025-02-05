@@ -1,12 +1,12 @@
-abstract class PeripheralRound {
+abstract class PeripherialRound {
   String? get fen;
   bool? get isSynchronized;
 }
 
-abstract class Peripheral {
+abstract class Peripherial {
   List<String> get features;
   List<String> get variants;
-  PeripheralRound get round;
+  PeripherialRound get round;
 
   void onCentralRoundBegin();
   void onCentralRoundChange();

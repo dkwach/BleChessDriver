@@ -37,14 +37,15 @@ class _GameScreenState extends State<GameScreen> {
 
   void _startNewRound() {
     chessController.resetBoard();
-    peripherialBoard?.startNewGame();
+    peripherialBoard?.onCentralRoundBegin();
   }
 
   void _onConnectionStateChanged(BleConnectorStatus state) {
     setState(() {
-      if (state == BleConnectorStatus.disconnected)
+      if (state == BleConnectorStatus.disconnected) {
+        appCentral.onPeriherialDisconnected();
         peripherialBoard = null;
-      else if (state == BleConnectorStatus.connected) {
+      } else if (state == BleConnectorStatus.connected) {
         bleConnector.createMtu().request(mtu: BleClient.mtu).then(
             (negotiatedMtu) => negotiatedMtu < BleClient.mtu
                 ? throw RangeError(
@@ -55,6 +56,7 @@ class _GameScreenState extends State<GameScreen> {
             rxCharacteristicId: BleClient.rxCh,
             txCharacteristicId: BleClient.txCh));
         peripherialBoard = UniversalPeripherial(client, appCentral);
+        appCentral.onPeriherialConnected(peripherialBoard!);
       }
     });
   }
@@ -82,8 +84,7 @@ class _GameScreenState extends State<GameScreen> {
         boardColor: BoardColor.darkBrown,
         boardOrientation: PlayerColor.white,
         onMove: () {
-          String? lastMove = appCentral.lastMove;
-          if (lastMove != null) peripherialBoard?.move(lastMove);
+          peripherialBoard?.onCentralRoundChange();
         },
       );
 
