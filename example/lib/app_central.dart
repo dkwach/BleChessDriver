@@ -49,7 +49,7 @@ class AppCentral implements Central {
 
   @override
   void onPeripheralMsg(String msg) {
-    print("Peripherial is out of sync: $msg");
+    print("Msg: $msg");
   }
 
   @override

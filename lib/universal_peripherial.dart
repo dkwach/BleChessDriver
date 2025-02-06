@@ -69,6 +69,10 @@ class UniversalPeripherial implements Peripherial {
 class _State {
   late UniversalPeripherial _context;
 
+  bool isFeatureSupported(String feature) {
+    return _context.features.contains(feature);
+  }
+
   void set context(UniversalPeripherial context) {
     _context = context;
   }
@@ -76,8 +80,7 @@ class _State {
   void onEnter() {}
 
   void onPeripheralCmd(String cmd) {
-    if (this._context.central.features.contains("msg") &&
-        cmd.startsWith("msg")) {
+    if (isFeatureSupported("msg") && cmd.startsWith("msg")) {
       this._context.central.onPeripheralMsg(getCommandParams(cmd));
       this._context.send('ok');
       return;
@@ -195,7 +198,7 @@ class _SyncFen extends _State {
 class _SyncLastMove extends _ExpectAck {
   @override
   void onEnter() {
-    if (this._context.central.features.contains("last_move") &&
+    if (isFeatureSupported("last_move") &&
         this._context.central.round.lastMove != null)
       _context.send("last_move ${this._context.central.round.lastMove}");
     else
