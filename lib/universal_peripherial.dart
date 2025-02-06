@@ -69,37 +69,47 @@ class UniversalPeripherial implements Peripherial {
 class _State {
   late UniversalPeripherial _context;
 
+  void set context(UniversalPeripherial context) {
+    _context = context;
+  }
+
+  Central get central => _context.central;
+
   bool isFeatureSupported(String feature) {
     return _context.features.contains(feature);
   }
 
-  void set context(UniversalPeripherial context) {
-    _context = context;
+  void send(String command) {
+    this._context.send(command);
+  }
+
+  void transitionTo(_State nextState) {
+    this._context.transitionTo(nextState);
   }
 
   void onEnter() {}
 
   void onPeripheralCmd(String cmd) {
-    if (isFeatureSupported("msg") && cmd.startsWith("msg")) {
-      this._context.central.onPeripheralMsg(getCommandParams(cmd));
-      this._context.send('ok');
+    if (cmd.startsWith("msg") && isFeatureSupported("msg")) {
+      this.central.onPeripheralMsg(getCommandParams(cmd));
+      this.send('ok');
       return;
     }
 
-    if (cmd != 'nok') this._context.send('nok');
+    if (cmd != 'nok') this.send('nok');
     print("proto: " + "Not expected $cmd!");
   }
 
   void onNewGame() {
-    this._context.transitionTo(_SyncVariant());
+    this.transitionTo(_SyncVariant());
   }
 
   void onNewCentralMove(String move) {
-    this._context.transitionTo(_SyncVariant());
+    this.transitionTo(_SyncVariant());
   }
 
   void onPeripheralMoveRejected() {
-    this._context.transitionTo(_SyncVariant());
+    this.transitionTo(_SyncVariant());
   }
 }
 
@@ -107,7 +117,7 @@ class _ExpectAck extends _State {
   @override
   void onPeripheralCmd(String cmd) {
     if (cmd == 'ok' || cmd == 'nok')
-      this._context.transitionTo(_Synchronised());
+      this.transitionTo(_Synchronised());
     else
       super.onPeripheralCmd(cmd);
   }
@@ -130,9 +140,9 @@ class _IterableExchange extends _State {
 
   void moveToNext() {
     if (!iter.moveNext())
-      this._context.transitionTo(next);
+      this.transitionTo(next);
     else
-      this._context.send("$key ${iter.current}");
+      this.send("$key ${iter.current}");
   }
 
   @override
@@ -153,23 +163,23 @@ class _SyncVariant extends _State {
   late String requestedVariant;
   @override
   void onEnter() {
-    if (this._context._central.round.variant == null)
-      this._context.transitionTo(_Unsynchronised());
+    if (this.central.round.variant == null)
+      this.transitionTo(_Unsynchronised());
 
-    requestedVariant = this._context._central.round.variant!;
+    requestedVariant = this.central.round.variant!;
     if (peripherialVariant == requestedVariant)
-      this._context.transitionTo(_SyncFen());
+      this.transitionTo(_SyncFen());
     else
-      this._context.send("variant " + requestedVariant);
+      this.send("variant " + requestedVariant);
   }
 
   @override
   void onPeripheralCmd(String cmd) {
     if (cmd == 'ok') {
       peripherialVariant = requestedVariant;
-      this._context.transitionTo(_SyncFen());
+      this.transitionTo(_SyncFen());
     } else if (cmd == 'nok')
-      this._context.transitionTo(_Unsynchronised());
+      this.transitionTo(_Unsynchronised());
     else
       super.onPeripheralCmd(cmd);
   }
@@ -178,18 +188,17 @@ class _SyncVariant extends _State {
 class _SyncFen extends _State {
   @override
   void onEnter() {
-    if (this._context.central.round.fen == null)
-      this._context.transitionTo(_Unsynchronised());
+    if (this.central.round.fen == null) this.transitionTo(_Unsynchronised());
 
-    _context.send("fen ${this._context.central.round.fen}");
+    this.send("fen ${this.central.round.fen}");
   }
 
   @override
   void onPeripheralCmd(String cmd) {
     if (cmd == 'ok')
-      this._context.transitionTo(_SyncLastMove());
+      this.transitionTo(_SyncLastMove());
     else if (cmd == 'nok')
-      this._context.transitionTo(_Unsynchronised());
+      this.transitionTo(_Unsynchronised());
     else
       super.onPeripheralCmd(cmd);
   }
@@ -198,11 +207,10 @@ class _SyncFen extends _State {
 class _SyncLastMove extends _ExpectAck {
   @override
   void onEnter() {
-    if (isFeatureSupported("last_move") &&
-        this._context.central.round.lastMove != null)
-      _context.send("last_move ${this._context.central.round.lastMove}");
+    if (isFeatureSupported("last_move") && this.central.round.lastMove != null)
+      this.send("last_move ${this.central.round.lastMove}");
     else
-      this._context.transitionTo(_Synchronised());
+      this.transitionTo(_Synchronised());
   }
 }
 
@@ -210,15 +218,15 @@ class _Synchronised extends _State {
   @override
   void onPeripheralCmd(String cmd) {
     if (cmd.startsWith("move")) {
-      this._context.transitionTo(_PeripherialMove(getCommandParams(cmd)));
+      this.transitionTo(_PeripherialMove(getCommandParams(cmd)));
     } else if (cmd.startsWith("fen")) {
       var fen = getCommandParams(cmd);
-      if (this._context.central.round.fen != null &&
-          areFensSame(fen, this._context.central.round.fen!))
-        this._context.send('ok');
+      if (this.central.round.fen != null &&
+          areFensSame(fen, this.central.round.fen!))
+        this.send('ok');
       else {
-        this._context.send('nok');
-        this._context.transitionTo(_Unsynchronised());
+        this.send('nok');
+        this.transitionTo(_Unsynchronised());
       }
     } else
       super.onPeripheralCmd(cmd);
@@ -226,8 +234,8 @@ class _Synchronised extends _State {
 
   @override
   void onNewCentralMove(String uci) {
-    this._context.send("move $uci");
-    this._context.transitionTo(_CentralMove());
+    this.send("move $uci");
+    this.transitionTo(_CentralMove());
   }
 }
 
@@ -236,12 +244,12 @@ class _Unsynchronised extends _State {
   void onPeripheralCmd(String cmd) {
     if (cmd.startsWith("fen")) {
       var fen = getCommandParams(cmd);
-      if (this._context.central.round.fen != null &&
-          areFensSame(fen, this._context.central.round.fen!)) {
-        this._context.send('ok');
-        this._context.transitionTo(_SyncLastMove());
+      if (this.central.round.fen != null &&
+          areFensSame(fen, this.central.round.fen!)) {
+        this.send('ok');
+        this.transitionTo(_SyncLastMove());
       } else {
-        this._context.send('nok');
+        this.send('nok');
       }
     } else
       super.onPeripheralCmd(cmd);
@@ -255,32 +263,32 @@ class _PeripherialMove extends _ExpectAck {
 
   @override
   void onEnter() async {
-    this._context.central.onPeripheralMove(_requestedMove);
+    this.central.onPeripheralMove(_requestedMove);
   }
 
   @override
   onNewCentralMove(String move) {
     if (_requestedMove == move) {
-      this._context.send("ok");
-      this._context.transitionTo(_Synchronised());
+      this.send("ok");
+      this.transitionTo(_Synchronised());
       return;
     }
 
     bool isPromotionOnCentral = move.length == 5;
     bool isRequestedPromotion = _requestedMove.length == 5;
     if (isPromotionOnCentral && !isRequestedPromotion) {
-      this._context.transitionTo(_PeripherialMoveWithPromotion(move));
+      this.transitionTo(_PeripherialMoveWithPromotion(move));
       return;
     }
 
     print("It shouln't happen");
-    this._context.transitionTo(_Unsynchronised());
+    this.transitionTo(_Unsynchronised());
   }
 
   @override
   void onPeripheralMoveRejected() {
-    this._context.send("nok");
-    this._context.transitionTo(_Synchronised());
+    this.send("nok");
+    this.transitionTo(_Synchronised());
   }
 }
 
@@ -289,7 +297,7 @@ class _PeripherialMoveWithPromotion extends _PeripherialMove {
 
   @override
   void onEnter() async {
-    this._context.send("promote $_requestedMove");
+    this.send("promote $_requestedMove");
   }
 }
 
