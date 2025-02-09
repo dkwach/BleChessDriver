@@ -40,11 +40,9 @@ class AppCentral implements Central {
 
   @override
   void onPeripheralMove(String uci) {
-    bool isAccepted = _chessController.makeMoveUci(uci: uci);
-    if (isAccepted)
-      _peripherial?.onCentralRoundChange();
-    else
-      _peripherial?.onPeripheralMoveRejected();
+    _chessController.makeMoveUci(uci: uci)
+        ? _peripherial?.onCentralRoundChange()
+        : _peripherial?.onPeripheralMoveRejected();
   }
 
   @override

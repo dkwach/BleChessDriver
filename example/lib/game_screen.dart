@@ -8,8 +8,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:universal_chess_driver/ble_client.dart';
 import 'package:universal_chess_driver/central.dart';
+import 'package:universal_chess_driver/cpp_peripherial.dart'
+    show CppPeripherial;
 import 'package:universal_chess_driver/peripherial.dart';
-import 'package:universal_chess_driver/universal_peripherial.dart';
 
 class GameScreen extends StatefulWidget {
   GameScreen({
@@ -55,7 +56,7 @@ class _GameScreenState extends State<GameScreen> {
             serviceId: BleClient.srv,
             rxCharacteristicId: BleClient.rxCh,
             txCharacteristicId: BleClient.txCh));
-        peripherialBoard = UniversalPeripherial(client, appCentral);
+        peripherialBoard = CppPeripherial(client, appCentral);
         appCentral.onPeriherialConnected(peripherialBoard!);
       }
     });
