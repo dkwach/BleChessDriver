@@ -100,7 +100,7 @@ class PeripherialState {
     }
 
     if (cmd != 'nok') send('nok');
-    logger.warning('Unexpected: $cmd!');
+    logger.warning('Unexpected: $cmd');
   }
 
   void onNewGame() {
