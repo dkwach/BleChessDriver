@@ -4,7 +4,7 @@ import 'package:universal_chess_driver/peripherial.dart';
 import 'package:universal_chess_driver/peripherial_client.dart';
 import 'package:universal_chess_driver/utils.dart';
 
-final logger = Logger('cpp');
+final logger = Logger('cpp_peripherial');
 
 class CppPeripheralRound implements PeripherialRound {
   String? get fen => null;
@@ -23,9 +23,9 @@ class CppPeripherial implements Peripherial {
         (dataChunks) => onPeripheralCmd(String.fromCharCodes(dataChunks)));
     transitionTo(IterableExchangeState(
         _central.features.iterator,
-        "feature",
+        'feature',
         IterableExchangeState(
-            _central.variants.iterator, "variant", IdleState(), _variants),
+            _central.variants.iterator, 'variant', IdleState(), _variants),
         _features));
   }
 
@@ -35,7 +35,7 @@ class CppPeripherial implements Peripherial {
   PeripherialRound get round => CppPeripheralRound();
 
   void onPeripheralCmd(String cmd) {
-    logger.info("proto: " + "Peripheral: " + cmd);
+    logger.info('Peripheral: $cmd');
     _state.onPeripheralCmd(cmd);
   }
 
@@ -56,16 +56,15 @@ class CppPeripherial implements Peripherial {
   }
 
   void transitionTo(PeripherialState nextState) {
-    logger
-        .info("proto: " + "Transition to:" + nextState.runtimeType.toString());
+    logger.info('Transition to: ${nextState.runtimeType.toString()}');
     _state = nextState;
     _state.context = this;
     _state.onEnter();
   }
 
-  void send(String command) async {
-    List<int> message = [...command.codeUnits];
-    logger.info("proto: " + "Central: " + command);
+  void send(String cmd) async {
+    logger.info('Central: $cmd');
+    List<int> message = [...cmd.codeUnits];
     await _client.send(message);
   }
 }
@@ -94,14 +93,14 @@ class PeripherialState {
   void onEnter() {}
 
   void onPeripheralCmd(String cmd) {
-    if (cmd.startsWith("msg") && isFeatureSupported("msg")) {
+    if (cmd.startsWith('msg') && isFeatureSupported('msg')) {
       central.onPeripheralMsg(getCommandParams(cmd));
       send('ok');
       return;
     }
 
     if (cmd != 'nok') send('nok');
-    logger.warning("proto: " + "Not expected $cmd!");
+    logger.warning('Unexpected: $cmd!');
   }
 
   void onNewGame() {
@@ -146,16 +145,17 @@ class IterableExchangeState extends PeripherialState {
     if (!iter.moveNext())
       transitionTo(next);
     else
-      send("$key ${iter.current}");
+      send('$key ${iter.current}');
   }
 
   @override
   void onPeripheralCmd(String cmd) {
-    if (cmd == 'ok')
+    if (cmd == 'ok') {
+      logger.info('Peripherial ${key} ${iter.current} supported');
       result.add(iter.current);
-    else if (cmd == 'nok')
-      logger.warning("${iter.current} not supported by peripherial");
-    else
+    } else if (cmd == 'nok') {
+      logger.info('Peripherial ${key} ${iter.current} unsupported');
+    } else
       super.onPeripheralCmd(cmd);
 
     moveToNext();
@@ -172,7 +172,7 @@ class SyncVariantState extends PeripherialState {
     if (peripherialVariant == central.round.variant!)
       transitionTo(SyncFenState());
     else
-      send("variant " + central.round.variant!);
+      send('variant ' + central.round.variant!);
   }
 
   @override
@@ -192,7 +192,7 @@ class SyncFenState extends PeripherialState {
   void onEnter() {
     if (central.round.fen == null) transitionTo(UnsynchronisedState());
 
-    send("fen ${central.round.fen}");
+    send('fen ${central.round.fen}');
   }
 
   @override
@@ -209,8 +209,8 @@ class SyncFenState extends PeripherialState {
 class SyncLastMoveState extends ExpectAckState {
   @override
   void onEnter() {
-    if (isFeatureSupported("last_move") && central.round.lastMove != null)
-      send("last_move ${central.round.lastMove}");
+    if (isFeatureSupported('last_move') && central.round.lastMove != null)
+      send('last_move ${central.round.lastMove}');
     else
       transitionTo(SynchronisedState());
   }
@@ -219,9 +219,9 @@ class SyncLastMoveState extends ExpectAckState {
 class SynchronisedState extends PeripherialState {
   @override
   void onPeripheralCmd(String cmd) {
-    if (cmd.startsWith("move")) {
+    if (cmd.startsWith('move')) {
       transitionTo(PeripherialMoveState(getCommandParams(cmd)));
-    } else if (cmd.startsWith("fen")) {
+    } else if (cmd.startsWith('fen')) {
       var fen = getCommandParams(cmd);
       if (central.round.fen != null && areFensSame(fen, central.round.fen!))
         send('ok');
@@ -235,7 +235,7 @@ class SynchronisedState extends PeripherialState {
 
   @override
   void onNewCentralMove(String uci) {
-    send("move $uci");
+    send('move $uci');
     transitionTo(CentralMove());
   }
 }
@@ -243,7 +243,7 @@ class SynchronisedState extends PeripherialState {
 class UnsynchronisedState extends PeripherialState {
   @override
   void onPeripheralCmd(String cmd) {
-    if (cmd.startsWith("fen")) {
+    if (cmd.startsWith('fen')) {
       var fen = getCommandParams(cmd);
       if (central.round.fen != null && areFensSame(fen, central.round.fen!)) {
         send('ok');
@@ -269,7 +269,7 @@ class PeripherialMoveState extends ExpectAckState {
   @override
   onNewCentralMove(String move) {
     if (lastMove == move) {
-      send("ok");
+      send('ok');
       transitionTo(SynchronisedState());
       return;
     }
@@ -281,13 +281,13 @@ class PeripherialMoveState extends ExpectAckState {
       return;
     }
 
-    logger.warning("Malfunctioned or unexpected central move");
+    logger.warning('Malfunctioned or unexpected central move');
     transitionTo(UnsynchronisedState());
   }
 
   @override
   void onPeripheralMoveRejected() {
-    send("nok");
+    send('nok');
     transitionTo(SynchronisedState());
   }
 }
@@ -298,7 +298,7 @@ class PeripherialMoveWithPromotionState extends PeripherialMoveState {
 
   @override
   void onEnter() async {
-    send("promote $lastMove");
+    send('promote $lastMove');
   }
 }
 

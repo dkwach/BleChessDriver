@@ -12,7 +12,8 @@ FlutterReactiveBle ble = FlutterReactiveBle();
 void main() {
   Logger.root.level = Level.INFO;
   Logger.root.onRecord.listen((record) {
-    print('${record.level.name}: ${record.time}: ${record.message}');
+    print(
+        '${record.level.name}: ${record.time}: ${record.loggerName}: ${record.message}');
   });
   runApp(UniversalDriverDemoApp());
 }

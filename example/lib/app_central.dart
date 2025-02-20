@@ -20,10 +20,10 @@ class AppCentral implements Central {
 
   AppCentral(this._chessController);
 
-  List<String> get features => ["msg", "last_move"];
-  List<String> get variants => ["standard"];
+  List<String> get features => ['msg', 'last_move'];
+  List<String> get variants => ['standard'];
   AppCentralRound get round =>
-      AppCentralRound("standard", _chessController.getFen(), _lastMove());
+      AppCentralRound('standard', _chessController.getFen(), _lastMove());
 
   @override
   void onPeriherialConnected(Peripherial p) {
@@ -47,7 +47,7 @@ class AppCentral implements Central {
 
   @override
   void onPeripheralMsg(String msg) {
-    print("Msg: $msg");
+    print('Msg: $msg');
   }
 
   @override

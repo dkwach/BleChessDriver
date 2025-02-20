@@ -8,8 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:universal_chess_driver/ble_client.dart';
 import 'package:universal_chess_driver/central.dart';
-import 'package:universal_chess_driver/cpp_peripherial.dart'
-    show CppPeripherial;
+import 'package:universal_chess_driver/cpp_peripherial.dart';
 import 'package:universal_chess_driver/peripherial.dart';
 
 class GameScreen extends StatefulWidget {
