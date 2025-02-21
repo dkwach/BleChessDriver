@@ -41,13 +41,12 @@ class CppPeripherial implements Peripherial {
 
   @override
   void onCentralRoundBegin() {
-    _state.onNewGame();
+    _state.onCentralRoundBegin();
   }
 
   @override
   void onCentralRoundChange() {
-    if (_central.round.lastMove != null)
-      _state.onNewCentralMove(_central.round.lastMove!);
+    _state.onCentralRoundChange();
   }
 
   @override
@@ -76,6 +75,7 @@ class PeripherialState {
   }
 
   Central get central => _context.central;
+  CentralRound get centralRound => central.round;
 
   bool isFeatureSupported(String feature) {
     return _context.features.contains(feature);
@@ -102,11 +102,11 @@ class PeripherialState {
     logger.warning('Unexpected: $cmd');
   }
 
-  void onNewGame() {
+  void onCentralRoundBegin() {
     transitionTo(SyncVariantState());
   }
 
-  void onNewCentralMove(String move) {
+  void onCentralRoundChange() {
     transitionTo(SyncVariantState());
   }
 
@@ -166,18 +166,18 @@ class SyncVariantState extends PeripherialState {
 
   @override
   void onEnter() {
-    if (central.round.variant == null) transitionTo(UnsynchronisedState());
+    if (centralRound.variant == null) transitionTo(UnsynchronisedState());
 
-    if (peripherialVariant == central.round.variant!)
+    if (peripherialVariant == centralRound.variant!)
       transitionTo(SyncFenState());
     else
-      send('variant ' + central.round.variant!);
+      send('variant ' + centralRound.variant!);
   }
 
   @override
   void onPeripheralCmd(String cmd) {
     if (cmd == 'ok') {
-      peripherialVariant = central.round.variant!;
+      peripherialVariant = centralRound.variant!;
       transitionTo(SyncFenState());
     } else if (cmd == 'nok')
       transitionTo(UnsynchronisedState());
@@ -189,9 +189,9 @@ class SyncVariantState extends PeripherialState {
 class SyncFenState extends PeripherialState {
   @override
   void onEnter() {
-    if (central.round.fen == null) transitionTo(UnsynchronisedState());
+    if (centralRound.fen == null) transitionTo(UnsynchronisedState());
 
-    send('fen ${central.round.fen}');
+    send('fen ${centralRound.fen}');
   }
 
   @override
@@ -208,8 +208,8 @@ class SyncFenState extends PeripherialState {
 class SyncLastMoveState extends ExpectAckState {
   @override
   void onEnter() {
-    if (isFeatureSupported('last_move') && central.round.lastMove != null)
-      send('last_move ${central.round.lastMove}');
+    if (isFeatureSupported('last_move') && centralRound.lastMove != null)
+      send('last_move ${centralRound.lastMove}');
     else
       transitionTo(SynchronisedState());
   }
@@ -221,8 +221,9 @@ class SynchronisedState extends PeripherialState {
     if (cmd.startsWith('move')) {
       transitionTo(PeripherialMoveState(getCommandParams(cmd)));
     } else if (cmd.startsWith('fen')) {
-      var fen = getCommandParams(cmd);
-      if (central.round.fen != null && areFensSame(fen, central.round.fen!))
+      final peripheralFen = getCommandParams(cmd);
+      final centralFen = centralRound.fen;
+      if (centralFen != null && areFensSame(peripheralFen, centralFen))
         send('ok');
       else {
         send('nok');
@@ -233,9 +234,12 @@ class SynchronisedState extends PeripherialState {
   }
 
   @override
-  void onNewCentralMove(String uci) {
-    send('move $uci');
-    transitionTo(CentralMove());
+  void onCentralRoundChange() {
+    final centralMove = centralRound.lastMove;
+    if (centralMove != null) {
+      send('move ${centralMove}');
+      transitionTo(CentralMove());
+    }
   }
 }
 
@@ -243,8 +247,9 @@ class UnsynchronisedState extends PeripherialState {
   @override
   void onPeripheralCmd(String cmd) {
     if (cmd.startsWith('fen')) {
-      var fen = getCommandParams(cmd);
-      if (central.round.fen != null && areFensSame(fen, central.round.fen!)) {
+      final peripheralFen = getCommandParams(cmd);
+      final centralFen = centralRound.fen;
+      if (centralFen != null && areFensSame(peripheralFen, centralFen)) {
         send('ok');
         transitionTo(SyncLastMoveState());
       } else {
@@ -266,17 +271,21 @@ class PeripherialMoveState extends ExpectAckState {
   }
 
   @override
-  onNewCentralMove(String move) {
-    if (lastMove == move) {
+  onCentralRoundChange() {
+    final centralMove = centralRound.lastMove;
+    if (centralMove == null) {
+      logger.warning('Central update state without move');
+      return;
+    }
+
+    if (lastMove == centralMove) {
       send('ok');
       transitionTo(SynchronisedState());
       return;
     }
 
-    bool isPromotionOnCentral = move.length == 5;
-    bool isRequestedPromotion = lastMove.length == 5;
-    if (isPromotionOnCentral && !isRequestedPromotion) {
-      transitionTo(PeripherialMoveWithPromotionState(move));
+    if (hasUciPromotion(centralMove) && !hasUciPromotion(lastMove)) {
+      transitionTo(PeripherialMoveWithPromotionState(centralMove));
       return;
     }
 
