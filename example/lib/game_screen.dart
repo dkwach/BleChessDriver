@@ -67,7 +67,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
-    central = AppCentral(chessController);
+    central = AppCentral(chessController: chessController);
     _subscription = bleConnector.stateStream.listen(_onConnectionStateChanged);
     bleConnector.connect();
   }
