@@ -13,8 +13,8 @@ import 'package:universal_chess_driver/central.dart';
 import 'package:universal_chess_driver/cpp_peripheral.dart';
 import 'package:universal_chess_driver/peripheral.dart';
 
-class GameScreen extends StatefulWidget {
-  GameScreen({
+class RoundScreen extends StatefulWidget {
+  RoundScreen({
     required this.bleConnector,
     required this.blePeripheral,
     super.key,
@@ -24,10 +24,10 @@ class GameScreen extends StatefulWidget {
   final BlePeripheral blePeripheral;
 
   @override
-  State<GameScreen> createState() => _GameScreenState();
+  State<RoundScreen> createState() => _RoundScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
+class _RoundScreenState extends State<RoundScreen> {
   StreamSubscription? _subscription;
   ChessBoardController chessController = ChessBoardController();
   late Central central;
