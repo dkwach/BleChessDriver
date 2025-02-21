@@ -59,7 +59,6 @@ class CppPeripheral implements Peripheral {
 
   List<String> get features => _features;
   List<String> get variants => _variants;
-  Central get central => _central;
   PeripheralRound get round => _round;
 
   void onPeripheralCmd(String cmd) {
@@ -102,7 +101,7 @@ class PeripheralState {
     _context = context;
   }
 
-  Central get central => _context.central;
+  Central get central => _context._central;
   CentralRound get centralRound => central.round;
   CppPeripheralRound get peripheralRound => _context._round;
 
