@@ -1,7 +1,7 @@
 import 'package:logging/logging.dart';
 import 'package:universal_chess_driver/central.dart';
 import 'package:universal_chess_driver/peripherial.dart';
-import 'package:universal_chess_driver/peripherial_client.dart';
+import 'package:universal_chess_driver/string_serial.dart';
 import 'package:universal_chess_driver/utils.dart';
 
 final logger = Logger('cpp_peripherial');
@@ -12,15 +12,15 @@ class CppPeripheralRound implements PeripherialRound {
 }
 
 class CppPeripherial implements Peripherial {
-  final PeripherialClient _client;
+  final StringSerial _serial;
   final Central _central;
   late PeripherialState _state;
   List<String> _features = [];
   List<String> _variants = [];
 
-  CppPeripherial(this._client, this._central) {
-    _client.recieve().listen(
-        (dataChunks) => onPeripheralCmd(String.fromCharCodes(dataChunks)));
+  CppPeripherial(this._serial, this._central) {
+    _serial.startNotifications();
+    _serial.stringStream.listen(onPeripheralCmd);
     transitionTo(IterableExchangeState(
         _central.features.iterator,
         'feature',
@@ -64,8 +64,7 @@ class CppPeripherial implements Peripherial {
 
   void send(String cmd) async {
     logger.info('Central: $cmd');
-    List<int> message = [...cmd.codeUnits];
-    await _client.send(message);
+    await _serial.send(str: cmd);
   }
 }
 

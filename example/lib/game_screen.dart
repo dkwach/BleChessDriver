@@ -6,7 +6,9 @@ import 'package:ble_backend_screens/ui/ui_consts.dart';
 import 'package:example/app_central.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
-import 'package:universal_chess_driver/ble_client.dart';
+import 'package:universal_chess_driver/ble_consts.dart';
+import 'package:universal_chess_driver/ble_string_serial.dart';
+import 'package:universal_chess_driver/ble_uuids.dart';
 import 'package:universal_chess_driver/central.dart';
 import 'package:universal_chess_driver/cpp_peripherial.dart';
 import 'package:universal_chess_driver/peripherial.dart';
@@ -46,16 +48,17 @@ class _GameScreenState extends State<GameScreen> {
         appCentral.onPeriherialDisconnected();
         peripherialBoard = null;
       } else if (state == BleConnectorStatus.connected) {
-        bleConnector.createMtu().request(mtu: BleClient.mtu).then(
-            (negotiatedMtu) => negotiatedMtu < BleClient.mtu
+        bleConnector.createMtu().request(mtu: maxStringSize).then(
+            (negotiatedMtu) => negotiatedMtu < maxStringSize
                 ? throw RangeError(
-                    'Mtu ($negotiatedMtu) is less than the required minimum (${BleClient.mtu}).')
+                    'Mtu ($negotiatedMtu) is less than the required minimum (${maxStringSize}).')
                 : null);
-        var client = BleClient(bleConnector.createSerial(
-            serviceId: BleClient.srv,
-            rxCharacteristicId: BleClient.rxCh,
-            txCharacteristicId: BleClient.txCh));
-        peripherialBoard = CppPeripherial(client, appCentral);
+        var serial = BleStringSerial(
+            bleSerial: bleConnector.createSerial(
+                serviceId: serviceUuid,
+                rxCharacteristicId: characteristicUuidRx,
+                txCharacteristicId: characteristicUuidTx));
+        peripherialBoard = CppPeripherial(serial, appCentral);
         appCentral.onPeriherialConnected(peripherialBoard!);
       }
     });

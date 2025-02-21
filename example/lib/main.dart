@@ -3,11 +3,8 @@ import 'package:ble_backend_screens/scanner_screen.dart';
 import 'package:ble_backend_screens/status_screen.dart';
 import 'package:example/game_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_reactive_ble/flutter_reactive_ble.dart' hide Logger;
 import 'package:logging/logging.dart';
-import 'package:universal_chess_driver/ble_client.dart';
-
-FlutterReactiveBle ble = FlutterReactiveBle();
+import 'package:universal_chess_driver/ble_uuids.dart';
 
 void main() {
   Logger.root.level = Level.INFO;
@@ -41,7 +38,7 @@ class UniversalDriverDemoApp extends StatelessWidget {
       ),
       home: ScannerScreen(
           bleCentral: bleCentral,
-          bleScanner: bleCentral.createScanner(serviceIds: [BleClient.srv]),
+          bleScanner: bleCentral.createScanner(serviceIds: [serviceUuid]),
           createStatusScreen: (bleCentral) =>
               StatusScreen(bleCentral: bleCentral),
           createPeripheralScreen: (blePeripheral) => GameScreen(
