@@ -1,4 +1,4 @@
-import 'package:universal_chess_driver/peripherial.dart';
+import 'package:universal_chess_driver/peripheral.dart';
 
 abstract class CentralRound {
   String? get variant;
@@ -11,8 +11,8 @@ abstract class Central {
   List<String> get variants;
   CentralRound get round;
 
-  void onPeriherialConnected(Peripherial p);
-  void onPeriherialDisconnected();
+  void onPeripheralConnected(Peripheral p);
+  void onPeripheralDisconnected();
 
   void onPeripheralRoundChange();
   void onPeripheralMove(String uci);

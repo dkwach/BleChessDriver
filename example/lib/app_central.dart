@@ -1,6 +1,6 @@
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:universal_chess_driver/central.dart';
-import 'package:universal_chess_driver/peripherial.dart';
+import 'package:universal_chess_driver/peripheral.dart';
 
 class AppCentralRound implements CentralRound {
   String? _variant;
@@ -16,7 +16,7 @@ class AppCentralRound implements CentralRound {
 
 class AppCentral implements Central {
   ChessBoardController _chessController;
-  Peripherial? _peripherial = null;
+  Peripheral? _peripheral = null;
 
   AppCentral(this._chessController);
 
@@ -26,13 +26,13 @@ class AppCentral implements Central {
       AppCentralRound('standard', _chessController.getFen(), _lastMove());
 
   @override
-  void onPeriherialConnected(Peripherial p) {
-    _peripherial = p;
+  void onPeripheralConnected(Peripheral p) {
+    _peripheral = p;
   }
 
   @override
-  void onPeriherialDisconnected() {
-    _peripherial = null;
+  void onPeripheralDisconnected() {
+    _peripheral = null;
   }
 
   @override
@@ -41,8 +41,8 @@ class AppCentral implements Central {
   @override
   void onPeripheralMove(String uci) {
     _chessController.makeMoveUci(uci: uci)
-        ? _peripherial?.onCentralRoundChange()
-        : _peripherial?.onPeripheralMoveRejected();
+        ? _peripheral?.onCentralRoundChange()
+        : _peripheral?.onPeripheralMoveRejected();
   }
 
   @override

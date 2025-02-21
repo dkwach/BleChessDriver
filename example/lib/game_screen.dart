@@ -10,8 +10,8 @@ import 'package:universal_chess_driver/ble_consts.dart';
 import 'package:universal_chess_driver/ble_string_serial.dart';
 import 'package:universal_chess_driver/ble_uuids.dart';
 import 'package:universal_chess_driver/central.dart';
-import 'package:universal_chess_driver/cpp_peripherial.dart';
-import 'package:universal_chess_driver/peripherial.dart';
+import 'package:universal_chess_driver/cpp_peripheral.dart';
+import 'package:universal_chess_driver/peripheral.dart';
 
 class GameScreen extends StatefulWidget {
   GameScreen({
@@ -31,7 +31,7 @@ class _GameScreenState extends State<GameScreen> {
   StreamSubscription? _subscription;
   ChessBoardController chessController = ChessBoardController();
   late Central appCentral;
-  late Peripherial? peripherialBoard;
+  late Peripheral? peripheralBoard;
 
   BlePeripheral get blePeripheral => widget.blePeripheral;
   BleConnector get bleConnector => widget.bleConnector;
@@ -39,14 +39,14 @@ class _GameScreenState extends State<GameScreen> {
 
   void _startNewRound() {
     chessController.resetBoard();
-    peripherialBoard?.onCentralRoundBegin();
+    peripheralBoard?.onCentralRoundBegin();
   }
 
   void _onConnectionStateChanged(BleConnectorStatus state) {
     setState(() {
       if (state == BleConnectorStatus.disconnected) {
-        appCentral.onPeriherialDisconnected();
-        peripherialBoard = null;
+        appCentral.onPeripheralDisconnected();
+        peripheralBoard = null;
       } else if (state == BleConnectorStatus.connected) {
         bleConnector.createMtu().request(mtu: maxStringSize).then(
             (negotiatedMtu) => negotiatedMtu < maxStringSize
@@ -58,8 +58,8 @@ class _GameScreenState extends State<GameScreen> {
                 serviceId: serviceUuid,
                 rxCharacteristicId: characteristicUuidRx,
                 txCharacteristicId: characteristicUuidTx));
-        peripherialBoard = CppPeripherial(serial, appCentral);
-        appCentral.onPeriherialConnected(peripherialBoard!);
+        peripheralBoard = CppPeripheral(serial, appCentral);
+        appCentral.onPeripheralConnected(peripheralBoard!);
       }
     });
   }
@@ -87,7 +87,7 @@ class _GameScreenState extends State<GameScreen> {
         boardColor: BoardColor.darkBrown,
         boardOrientation: PlayerColor.white,
         onMove: () {
-          peripherialBoard?.onCentralRoundChange();
+          peripheralBoard?.onCentralRoundChange();
         },
       );
 
