@@ -58,7 +58,7 @@ class _RoundScreenState extends State<RoundScreen> {
                 serviceId: serviceUuid,
                 rxCharacteristicId: characteristicUuidRx,
                 txCharacteristicId: characteristicUuidTx));
-        peripheral = CppPeripheral(serial, central);
+        peripheral = CppPeripheral(stringSerial: serial, central: central);
         central.onPeripheralConnected(peripheral!);
       }
     });

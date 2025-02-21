@@ -39,23 +39,32 @@ class CppPeripheralRound implements PeripheralRound {
 }
 
 class CppPeripheral implements Peripheral {
-  final StringSerial _serial;
-  final Central _central;
-  final CppPeripheralRound _round = CppPeripheralRound();
-  late PeripheralState _state;
-  List<String> _features = [];
-  List<String> _variants = [];
-
-  CppPeripheral(this._serial, this._central) {
+  CppPeripheral({
+    required StringSerial stringSerial,
+    required Central central,
+  })  : _serial = stringSerial,
+        _central = central {
     _serial.stringStream.listen(onPeripheralCmd);
     _serial.startNotifications();
     transitionTo(IterableExchangeState(
-        _central.features.iterator,
-        'feature',
-        IterableExchangeState(
-            _central.variants.iterator, 'variant', IdleState(), _variants),
-        _features));
+      _central.features.iterator,
+      'feature',
+      _features,
+      IterableExchangeState(
+        _central.variants.iterator,
+        'variant',
+        _variants,
+        IdleState(),
+      ),
+    ));
   }
+
+  final StringSerial _serial;
+  final Central _central;
+  final List<String> _features = [];
+  final List<String> _variants = [];
+  final CppPeripheralRound _round = CppPeripheralRound();
+  late PeripheralState _state;
 
   @override
   List<String> get features => _features;
@@ -159,12 +168,12 @@ class ExpectAckState extends PeripheralState {
 class IdleState extends PeripheralState {}
 
 class IterableExchangeState extends PeripheralState {
-  late List<String> result;
   late Iterator<String> iter;
   late String key;
+  late List<String> result;
   late PeripheralState next;
 
-  IterableExchangeState(this.iter, this.key, this.next, this.result) {}
+  IterableExchangeState(this.iter, this.key, this.result, this.next) {}
 
   @override
   void onEnter() {
