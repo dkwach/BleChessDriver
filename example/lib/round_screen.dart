@@ -6,13 +6,15 @@ import 'package:ble_backend_screens/ui/ui_consts.dart';
 import 'package:example/app_central.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
-import 'package:universal_chess_driver/ble_client.dart';
+import 'package:universal_chess_driver/ble_consts.dart';
+import 'package:universal_chess_driver/ble_string_serial.dart';
+import 'package:universal_chess_driver/ble_uuids.dart';
 import 'package:universal_chess_driver/central.dart';
-import 'package:universal_chess_driver/peripherial.dart';
-import 'package:universal_chess_driver/universal_peripherial.dart';
+import 'package:universal_chess_driver/cpp_peripheral.dart';
+import 'package:universal_chess_driver/peripheral.dart';
 
-class GameScreen extends StatefulWidget {
-  GameScreen({
+class RoundScreen extends StatefulWidget {
+  RoundScreen({
     required this.bleConnector,
     required this.blePeripheral,
     super.key,
@@ -22,14 +24,14 @@ class GameScreen extends StatefulWidget {
   final BlePeripheral blePeripheral;
 
   @override
-  State<GameScreen> createState() => _GameScreenState();
+  State<RoundScreen> createState() => _RoundScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
+class _RoundScreenState extends State<RoundScreen> {
   StreamSubscription? _subscription;
   ChessBoardController chessController = ChessBoardController();
-  late Central appCentral;
-  late Peripherial? peripherialBoard;
+  late Central central;
+  late Peripheral? peripheral;
 
   BlePeripheral get blePeripheral => widget.blePeripheral;
   BleConnector get bleConnector => widget.bleConnector;
@@ -37,24 +39,27 @@ class _GameScreenState extends State<GameScreen> {
 
   void _startNewRound() {
     chessController.resetBoard();
-    peripherialBoard?.startNewGame();
+    peripheral?.onCentralRoundBegin();
   }
 
   void _onConnectionStateChanged(BleConnectorStatus state) {
     setState(() {
-      if (state == BleConnectorStatus.disconnected)
-        peripherialBoard = null;
-      else if (state == BleConnectorStatus.connected) {
-        bleConnector.createMtu().request(mtu: BleClient.mtu).then(
-            (negotiatedMtu) => negotiatedMtu < BleClient.mtu
+      if (state == BleConnectorStatus.disconnected) {
+        central.onPeripheralDisconnected();
+        peripheral = null;
+      } else if (state == BleConnectorStatus.connected) {
+        bleConnector.createMtu().request(mtu: maxStringSize).then(
+            (negotiatedMtu) => negotiatedMtu < maxStringSize
                 ? throw RangeError(
-                    'Mtu ($negotiatedMtu) is less than the required minimum (${BleClient.mtu}).')
+                    'Mtu ($negotiatedMtu) is less than the required minimum (${maxStringSize}).')
                 : null);
-        var client = BleClient(bleConnector.createSerial(
-            serviceId: BleClient.srv,
-            rxCharacteristicId: BleClient.rxCh,
-            txCharacteristicId: BleClient.txCh));
-        peripherialBoard = UniversalPeripherial(client, appCentral);
+        var serial = BleStringSerial(
+            bleSerial: bleConnector.createSerial(
+                serviceId: serviceUuid,
+                rxCharacteristicId: characteristicUuidRx,
+                txCharacteristicId: characteristicUuidTx));
+        peripheral = CppPeripheral(stringSerial: serial, central: central);
+        central.onPeripheralConnected(peripheral!);
       }
     });
   }
@@ -62,7 +67,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
-    appCentral = AppCentral(chessController);
+    central = AppCentral(chessController: chessController);
     _subscription = bleConnector.stateStream.listen(_onConnectionStateChanged);
     bleConnector.connect();
   }
@@ -82,8 +87,7 @@ class _GameScreenState extends State<GameScreen> {
         boardColor: BoardColor.darkBrown,
         boardOrientation: PlayerColor.white,
         onMove: () {
-          String? lastMove = appCentral.lastMove;
-          if (lastMove != null) peripherialBoard?.move(lastMove);
+          peripheral?.onCentralRoundChange();
         },
       );
 

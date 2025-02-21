@@ -21,3 +21,7 @@ bool areFensSame(String lfen, String rfen) {
   }
   return true;
 }
+
+bool hasUciPromotion(String uci) {
+  return uci.length == 5;
+}
