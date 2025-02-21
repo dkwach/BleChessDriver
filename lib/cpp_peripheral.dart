@@ -57,14 +57,12 @@ class CppPeripheral implements Peripheral {
         _features));
   }
 
+  @override
   List<String> get features => _features;
+  @override
   List<String> get variants => _variants;
+  @override
   PeripheralRound get round => _round;
-
-  void onPeripheralCmd(String cmd) {
-    logger.info('Peripheral: $cmd');
-    _state.onPeripheralCmd(cmd);
-  }
 
   @override
   void onCentralRoundBegin() {
@@ -79,6 +77,11 @@ class CppPeripheral implements Peripheral {
   @override
   void onPeripheralMoveRejected() {
     _state.onPeripheralMoveRejected();
+  }
+
+  void onPeripheralCmd(String cmd) {
+    logger.info('Peripheral: $cmd');
+    _state.onPeripheralCmd(cmd);
   }
 
   void transitionTo(PeripheralState nextState) {
