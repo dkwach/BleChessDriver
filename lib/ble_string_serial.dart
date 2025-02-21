@@ -36,6 +36,7 @@ class BleStringSerial extends StringSerial {
   @override
   void dispose() {
     _subscription?.cancel();
+    _bleSerial.dispose();
     super.dispose();
   }
 }

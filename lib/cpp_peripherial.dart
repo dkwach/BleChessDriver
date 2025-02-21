@@ -19,8 +19,8 @@ class CppPeripherial implements Peripherial {
   List<String> _variants = [];
 
   CppPeripherial(this._serial, this._central) {
-    _serial.startNotifications();
     _serial.stringStream.listen(onPeripheralCmd);
+    _serial.startNotifications();
     transitionTo(IterableExchangeState(
         _central.features.iterator,
         'feature',
