@@ -30,8 +30,8 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   StreamSubscription? _subscription;
   ChessBoardController chessController = ChessBoardController();
-  late Central appCentral;
-  late Peripheral? peripheralBoard;
+  late Central central;
+  late Peripheral? peripheral;
 
   BlePeripheral get blePeripheral => widget.blePeripheral;
   BleConnector get bleConnector => widget.bleConnector;
@@ -39,14 +39,14 @@ class _GameScreenState extends State<GameScreen> {
 
   void _startNewRound() {
     chessController.resetBoard();
-    peripheralBoard?.onCentralRoundBegin();
+    peripheral?.onCentralRoundBegin();
   }
 
   void _onConnectionStateChanged(BleConnectorStatus state) {
     setState(() {
       if (state == BleConnectorStatus.disconnected) {
-        appCentral.onPeripheralDisconnected();
-        peripheralBoard = null;
+        central.onPeripheralDisconnected();
+        peripheral = null;
       } else if (state == BleConnectorStatus.connected) {
         bleConnector.createMtu().request(mtu: maxStringSize).then(
             (negotiatedMtu) => negotiatedMtu < maxStringSize
@@ -58,8 +58,8 @@ class _GameScreenState extends State<GameScreen> {
                 serviceId: serviceUuid,
                 rxCharacteristicId: characteristicUuidRx,
                 txCharacteristicId: characteristicUuidTx));
-        peripheralBoard = CppPeripheral(serial, appCentral);
-        appCentral.onPeripheralConnected(peripheralBoard!);
+        peripheral = CppPeripheral(serial, central);
+        central.onPeripheralConnected(peripheral!);
       }
     });
   }
@@ -67,7 +67,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
-    appCentral = AppCentral(chessController);
+    central = AppCentral(chessController);
     _subscription = bleConnector.stateStream.listen(_onConnectionStateChanged);
     bleConnector.connect();
   }
@@ -87,7 +87,7 @@ class _GameScreenState extends State<GameScreen> {
         boardColor: BoardColor.darkBrown,
         boardOrientation: PlayerColor.white,
         onMove: () {
-          peripheralBoard?.onCentralRoundChange();
+          peripheral?.onCentralRoundChange();
         },
       );
 
