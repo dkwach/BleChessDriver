@@ -40,10 +40,10 @@ class CppPeripheralRound implements PeripheralRound {
 
 class CppPeripheral implements Peripheral {
   CppPeripheral({
-    required StringSerial stringSerial,
     required Central central,
-  })  : _serial = stringSerial,
-        _central = central {
+    required StringSerial stringSerial,
+  })  : _central = central,
+        _serial = stringSerial {
     _serial.stringStream.listen(onPeripheralCmd);
     _serial.startNotifications();
     transitionTo(IterableExchangeState(
@@ -59,8 +59,8 @@ class CppPeripheral implements Peripheral {
     ));
   }
 
-  final StringSerial _serial;
   final Central _central;
+  final StringSerial _serial;
   final List<String> _features = [];
   final List<String> _variants = [];
   final CppPeripheralRound _round = CppPeripheralRound();

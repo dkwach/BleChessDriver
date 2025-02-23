@@ -1,7 +1,7 @@
 import 'dart:math';
 
 String getCommandParams(String command) {
-  return command.substring(command.indexOf(" ") + 1);
+  return command.substring(command.indexOf(' ') + 1);
 }
 
 bool areFenCharsSame(String lchar, String rchar) {
@@ -15,7 +15,7 @@ bool areFenCharsSame(String lchar, String rchar) {
 }
 
 bool areFensSame(String lfen, String rfen) {
-  var minLength = min(lfen.length, rfen.length);
+  final minLength = min(lfen.length, rfen.length);
   for (var i = 0; i < minLength; i++) {
     if (!areFenCharsSame(lfen[i], rfen[i])) return false;
   }
