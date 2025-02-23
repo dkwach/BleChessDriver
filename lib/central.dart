@@ -1,14 +1,22 @@
-import 'dart:async';
+import 'package:universal_chess_driver/peripheral.dart';
+
+abstract class CentralRound {
+  String? get variant;
+  String? get fen;
+  String? get lastMove;
+}
 
 abstract class Central {
-  String get fen;
-  String get variant;
-  String? get lastMove;
+  List<String> get features;
+  List<String> get variants;
+  CentralRound get round;
 
-  Future<bool> move(String uci);
-  Future<bool> isUnspefiedPromotion(String uci);
-  Future<String> obtainPromotedPawn();
-  void indicateOutOfSync(String peripherialFen);
+  void onPeripheralConnected(Peripheral p);
+  void onPeripheralDisconnected();
 
-  void showMsg(String msg);
+  void onPeripheralRoundChange();
+  void onPeripheralMove(String uci);
+
+  void onPeripheralMsg(String msg);
+  void onError(String err);
 }
