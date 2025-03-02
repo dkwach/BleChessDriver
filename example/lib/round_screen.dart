@@ -6,6 +6,7 @@ import 'package:ble_backend_screens/ui/ui_consts.dart';
 import 'package:example/app_central.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:universal_chess_driver/ble_consts.dart';
 import 'package:universal_chess_driver/ble_string_serial.dart';
 import 'package:universal_chess_driver/ble_uuids.dart';
@@ -24,42 +25,105 @@ class RoundScreen extends StatefulWidget {
   final BlePeripheral blePeripheral;
 
   @override
-  State<RoundScreen> createState() => _RoundScreenState();
+  State<RoundScreen> createState() => RoundScreenState(
+        chessController: ChessBoardController(),
+      );
 }
 
-class _RoundScreenState extends State<RoundScreen> {
+class RoundScreenState extends State<RoundScreen> {
+  RoundScreenState({
+    required ChessBoardController chessController,
+  })  : chessController = chessController,
+        central = AppCentral(chessController: chessController);
+  ChessBoardController chessController;
+  Central central;
+  Peripheral? peripheral;
   StreamSubscription? _subscription;
-  ChessBoardController chessController = ChessBoardController();
-  late Central central;
-  late Peripheral? peripheral;
 
   BlePeripheral get blePeripheral => widget.blePeripheral;
   BleConnector get bleConnector => widget.bleConnector;
   BleConnectorStatus get connectionStatus => bleConnector.state;
 
-  void _startNewRound() {
+  void _beginNewRound() {
     chessController.resetBoard();
-    peripheral?.onCentralRoundBegin();
+    peripheral?.handleRoundBegin();
+  }
+
+  void _showMessage(String msg) {
+    Fluttertoast.showToast(
+      msg: msg,
+      fontSize: 18.0,
+    );
+  }
+
+  void _showError(String err) {
+    Fluttertoast.showToast(
+      msg: err,
+      toastLength: Toast.LENGTH_LONG,
+      backgroundColor: Colors.red,
+      textColor: Colors.white,
+      fontSize: 18.0,
+    );
+  }
+
+  void _handlePeripheralIsInitialized(bool isInitialized) {
+    setState(() {
+      if (isInitialized) _beginNewRound();
+    });
+  }
+
+  void _handlePeripheralFen(String fen) {}
+
+  void _handlePeripheralMove(String uci) {
+    if (chessController.makeMoveUci(uci: uci))
+      peripheral?.handleRoundChange();
+    else {
+      peripheral?.handleMoveRejection();
+      _showMessage('Rejected');
+    }
+  }
+
+  void _handlePeripheralIsVariantSynchronized(bool isSynchronized) {
+    if (!isSynchronized) _showMessage('Unsupported variant');
+  }
+
+  void _handlePeripheralIsFenSynchronized(bool isSynchronized) {
+    _showMessage(isSynchronized ? 'Synchronized' : 'Unsynchronized');
+  }
+
+  Future<void> _initPeripheral() async {
+    final mtu = bleConnector.createMtu();
+    final requestedMtu = await mtu.request(mtu: maxStringSize);
+    if (requestedMtu < maxStringSize) {
+      bleConnector.disconnect();
+      _showError(
+          'Mtu: $requestedMtu, is less than the required: ${maxStringSize}');
+      return;
+    }
+
+    final serial = BleStringSerial(
+        bleSerial: bleConnector.createSerial(
+            serviceId: serviceUuid,
+            rxCharacteristicId: characteristicUuidRx,
+            txCharacteristicId: characteristicUuidTx));
+    peripheral = CppPeripheral(central: central, stringSerial: serial);
+    peripheral?.fenStream.listen(_handlePeripheralFen);
+    peripheral?.moveStream.listen(_handlePeripheralMove);
+    peripheral?.isVariantSynchronizedStream
+        .listen(_handlePeripheralIsVariantSynchronized);
+    peripheral?.isFenSynchronizedStream
+        .listen(_handlePeripheralIsFenSynchronized);
+    peripheral?.isInitializedStream.listen(_handlePeripheralIsInitialized);
+    peripheral?.msgStream.listen(_showMessage);
+    peripheral?.errorStream.listen(_showError);
   }
 
   void _onConnectionStateChanged(BleConnectorStatus state) {
     setState(() {
       if (state == BleConnectorStatus.disconnected) {
-        central.onPeripheralDisconnected();
         peripheral = null;
       } else if (state == BleConnectorStatus.connected) {
-        bleConnector.createMtu().request(mtu: maxStringSize).then(
-            (negotiatedMtu) => negotiatedMtu < maxStringSize
-                ? throw RangeError(
-                    'Mtu ($negotiatedMtu) is less than the required minimum (${maxStringSize}).')
-                : null);
-        var serial = BleStringSerial(
-            bleSerial: bleConnector.createSerial(
-                serviceId: serviceUuid,
-                rxCharacteristicId: characteristicUuidRx,
-                txCharacteristicId: characteristicUuidTx));
-        peripheral = CppPeripheral(central: central, stringSerial: serial);
-        central.onPeripheralConnected(peripheral!);
+        _initPeripheral();
       }
     });
   }
@@ -67,7 +131,6 @@ class _RoundScreenState extends State<RoundScreen> {
   @override
   void initState() {
     super.initState();
-    central = AppCentral(chessController: chessController);
     _subscription = bleConnector.stateStream.listen(_onConnectionStateChanged);
     bleConnector.connect();
   }
@@ -87,7 +150,7 @@ class _RoundScreenState extends State<RoundScreen> {
         boardColor: BoardColor.darkBrown,
         boardOrientation: PlayerColor.white,
         onMove: () {
-          peripheral?.onCentralRoundChange();
+          peripheral?.handleRoundChange();
         },
       );
 
@@ -100,7 +163,8 @@ class _RoundScreenState extends State<RoundScreen> {
               child: FilledButton.icon(
                 icon: const Icon(Icons.refresh_rounded),
                 label: Text('New round'),
-                onPressed: _startNewRound,
+                onPressed:
+                    peripheral?.isInitialized == true ? _beginNewRound : null,
               ),
             ),
           ],
