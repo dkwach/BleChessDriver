@@ -4,6 +4,7 @@ abstract class PeripheralRound {
   String? get lastMove;
   bool? get isVariantSynchronized;
   bool? get isFenSynchronized;
+  bool? get isMoveRejected;
 }
 
 abstract class Peripheral {
