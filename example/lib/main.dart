@@ -1,7 +1,7 @@
 import 'package:ble_backend_factory/ble_central.dart';
 import 'package:ble_backend_screens/scanner_screen.dart';
 import 'package:ble_backend_screens/status_screen.dart';
-import 'package:example/round_screen.dart';
+import 'package:ble_chess_example/round_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:universal_chess_driver/ble_uuids.dart';
@@ -21,7 +21,7 @@ class UniversalDriverDemoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Universal chess driver example',
+      title: 'BLE chess example',
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(

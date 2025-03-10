@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:ble_backend/ble_connector.dart';
 import 'package:ble_backend/ble_peripheral.dart';
 import 'package:ble_backend_screens/ui/ui_consts.dart';
-import 'package:example/app_central.dart';
+import 'package:ble_chess_example/app_central.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:fluttertoast/fluttertoast.dart';
