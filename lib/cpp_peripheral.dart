@@ -142,7 +142,7 @@ class CppPeripheral implements Peripheral {
   }
 
   void transitionTo(PeripheralState nextState) {
-    logger.info('Transition to: ${nextState.runtimeType.toString()}');
+    logger.info('Transition to: ${nextState.runtimeType}');
     _state = nextState;
     _state.context = this;
     _state.onEnter();
