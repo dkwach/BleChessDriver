@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:logging/logging.dart';
+import 'package:universal_chess_driver/option.dart';
 import 'package:universal_chess_driver/peripheral.dart';
 import 'package:universal_chess_driver/string_serial.dart';
 import 'package:universal_chess_driver/string_consts.dart';
