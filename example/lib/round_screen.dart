@@ -40,6 +40,7 @@ class RoundScreenState extends State<RoundScreen> {
   BlePeripheral get blePeripheral => widget.blePeripheral;
   BleConnector get bleConnector => widget.bleConnector;
   BleConnectorStatus get connectionStatus => bleConnector.state;
+  Chess get game => chessController.game;
 
   void _beginNewRound() {
     chessController.resetBoard();
@@ -79,17 +80,47 @@ class RoundScreenState extends State<RoundScreen> {
     }
   }
 
+  void _handlePeripheralStateSynchronize(bool isSynchronized) {
+    _showMessage(isSynchronized ? 'Synchronized' : 'Unsynchronized');
+  }
+
+  void _handleCentralMove() {
+    peripheral?.handleMove(move: lastMove!);
+    _handleCentralEnd();
+  }
+
+  void _handleCentralEnd() {
+    if (game.in_checkmate) {
+      _showMessage('Checkmate');
+      peripheral?.handleEnd(reason: EndReason.checkmate);
+    } else if (game.in_draw) {
+      _showMessage('Draw');
+      peripheral?.handleEnd(reason: EndReason.draw);
+    } else if (game.in_stalemate) {
+      _showMessage('Stalemate');
+      peripheral?.handleEnd(reason: EndReason.stalemate);
+    } else if (game.in_threefold_repetition) {
+      _showMessage('Threefold repetition');
+      peripheral?.handleEnd(
+        reason: EndReason.draw,
+        drawReason: DrawReason.threefoldRepetition,
+      );
+    } else if (game.insufficient_material) {
+      _showMessage('Insufficient material');
+      peripheral?.handleEnd(
+        reason: EndReason.draw,
+        drawReason: DrawReason.insufficientMaterial,
+      );
+    }
+  }
+
   void _handlePeripheralMove(String uci) {
     if (chessController.makeMoveUci(uci: uci)) {
-      peripheral?.handleMove(move: lastMove!);
+      _handleCentralMove();
     } else {
       peripheral?.handleReject();
       _showMessage('Rejected');
     }
-  }
-
-  void _handlePeripheralStateSynchronize(bool isSynchronized) {
-    _showMessage(isSynchronized ? 'Synchronized' : 'Unsynchronized');
   }
 
   Future<void> _initPeripheral() async {
@@ -149,7 +180,7 @@ class RoundScreenState extends State<RoundScreen> {
   }
 
   String? get lastMove {
-    final history = chessController.game.history;
+    final history = game.history;
     if (history.isEmpty) return null;
     final lastMove = history.last.move;
     String uci = lastMove.fromAlgebraic + lastMove.toAlgebraic;
@@ -162,9 +193,7 @@ class RoundScreenState extends State<RoundScreen> {
         controller: chessController,
         boardColor: BoardColor.darkBrown,
         boardOrientation: PlayerColor.white,
-        onMove: () {
-          peripheral?.handleMove(move: lastMove!);
-        },
+        onMove: _handleCentralMove,
       );
 
   Widget _buildNewRoundButton() => SizedBox(
