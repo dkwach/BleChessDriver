@@ -87,9 +87,9 @@ class VariantReason {
 }
 
 class OptionType {
-  static const boolType = 'bool';
-  static const enumer = 'enum';
-  static const string = 'str';
-  static const intType = 'int';
+  static const bool = 'bool';
+  static const enu = 'enum';
+  static const str = 'str';
+  static const int = 'int';
   static const float = 'float';
 }
