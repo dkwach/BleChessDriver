@@ -3,16 +3,15 @@ import 'dart:async';
 import 'package:ble_backend/ble_connector.dart';
 import 'package:ble_backend/ble_peripheral.dart';
 import 'package:ble_backend_screens/ui/ui_consts.dart';
-import 'package:ble_chess_example/app_central.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:universal_chess_driver/ble_consts.dart';
 import 'package:universal_chess_driver/ble_string_serial.dart';
 import 'package:universal_chess_driver/ble_uuids.dart';
-import 'package:universal_chess_driver/central.dart';
 import 'package:universal_chess_driver/cpp_peripheral.dart';
 import 'package:universal_chess_driver/peripheral.dart';
+import 'package:universal_chess_driver/string_consts.dart';
 
 class RoundScreen extends StatefulWidget {
   RoundScreen({
@@ -33,10 +32,8 @@ class RoundScreen extends StatefulWidget {
 class RoundScreenState extends State<RoundScreen> {
   RoundScreenState({
     required ChessBoardController chessController,
-  })  : chessController = chessController,
-        central = AppCentral(chessController: chessController);
+  }) : chessController = chessController;
   ChessBoardController chessController;
-  Central central;
   Peripheral? peripheral;
   StreamSubscription? _subscription;
 
@@ -46,7 +43,11 @@ class RoundScreenState extends State<RoundScreen> {
 
   void _beginNewRound() {
     chessController.resetBoard();
-    peripheral?.handleRoundBegin();
+    peripheral?.handleBegin(
+      fen: chessController.getFen(),
+      variant: Variant.standard,
+      lastMove: lastMove,
+    );
   }
 
   void _showMessage(String msg) {
@@ -66,28 +67,28 @@ class RoundScreenState extends State<RoundScreen> {
     );
   }
 
-  void _handlePeripheralIsInitialized(bool isInitialized) {
+  void _handlePeripheralInitialized(_) {
     setState(() {
-      if (isInitialized) _beginNewRound();
+      _beginNewRound();
     });
   }
 
-  void _handlePeripheralFen(String fen) {}
+  void _handlePeripheralRoundInitialized(_) {
+    if (!peripheral!.round.isVariantSupported) {
+      _showMessage('Unsupported variant');
+    }
+  }
 
   void _handlePeripheralMove(String uci) {
-    if (chessController.makeMoveUci(uci: uci))
-      peripheral?.handleRoundChange();
-    else {
-      peripheral?.handleMoveRejection();
+    if (chessController.makeMoveUci(uci: uci)) {
+      peripheral?.handleMove(move: lastMove!);
+    } else {
+      peripheral?.handleReject();
       _showMessage('Rejected');
     }
   }
 
-  void _handlePeripheralIsVariantSynchronized(bool isSynchronized) {
-    if (!isSynchronized) _showMessage('Unsupported variant');
-  }
-
-  void _handlePeripheralIsFenSynchronized(bool isSynchronized) {
+  void _handlePeripheralStateSynchronize(bool isSynchronized) {
     _showMessage(isSynchronized ? 'Synchronized' : 'Unsynchronized');
   }
 
@@ -106,16 +107,18 @@ class RoundScreenState extends State<RoundScreen> {
             serviceId: serviceUuid,
             rxCharacteristicId: characteristicUuidRx,
             txCharacteristicId: characteristicUuidTx));
-    peripheral = CppPeripheral(central: central, stringSerial: serial);
-    peripheral?.fenStream.listen(_handlePeripheralFen);
+    peripheral = CppPeripheral(
+        stringSerial: serial,
+        features: [Feature.msg, Feature.lastMove],
+        variants: [Variant.standard]);
+    peripheral?.initializedStream.listen(_handlePeripheralInitialized);
+    peripheral?.roundInitializedStream
+        .listen(_handlePeripheralRoundInitialized);
+    peripheral?.stateSynchronizeStream
+        .listen(_handlePeripheralStateSynchronize);
     peripheral?.moveStream.listen(_handlePeripheralMove);
-    peripheral?.isVariantSynchronizedStream
-        .listen(_handlePeripheralIsVariantSynchronized);
-    peripheral?.isFenSynchronizedStream
-        .listen(_handlePeripheralIsFenSynchronized);
-    peripheral?.isInitializedStream.listen(_handlePeripheralIsInitialized);
+    peripheral?.errStream.listen(_showError);
     peripheral?.msgStream.listen(_showMessage);
-    peripheral?.errorStream.listen(_showError);
   }
 
   void _onConnectionStateChanged(BleConnectorStatus state) {
@@ -145,12 +148,22 @@ class RoundScreenState extends State<RoundScreen> {
     super.dispose();
   }
 
+  String? get lastMove {
+    final history = chessController.game.history;
+    if (history.isEmpty) return null;
+    final lastMove = history.last.move;
+    String uci = lastMove.fromAlgebraic + lastMove.toAlgebraic;
+    final promotion = lastMove.promotion;
+    if (promotion != null) uci += promotion.name;
+    return uci;
+  }
+
   Widget _buildChessBoardWidget() => ChessBoard(
         controller: chessController,
         boardColor: BoardColor.darkBrown,
         boardOrientation: PlayerColor.white,
         onMove: () {
-          peripheral?.handleRoundChange();
+          peripheral?.handleMove(move: lastMove!);
         },
       );
 

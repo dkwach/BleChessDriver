@@ -4,6 +4,10 @@ String getCommandParams(String command) {
   return command.substring(command.indexOf(' ') + 1);
 }
 
+String join(String cmd, String param) {
+  return '$cmd $param';
+}
+
 bool areFenCharsSame(String lchar, String rchar) {
   return lchar == rchar ||
       (lchar == '?' && 'prbnkqPRBNKQ'.contains(rchar)) ||

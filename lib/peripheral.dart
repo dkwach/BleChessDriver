@@ -1,28 +1,75 @@
-abstract class PeripheralRound {
-  String? get variant;
+abstract class Round {
+  bool get isVariantSupported;
+  bool get isStateSynchronized;
+  bool get isStateSetible;
   String? get fen;
-  String? get lastMove;
-  bool? get isVariantSynchronized;
-  bool? get isFenSynchronized;
-  bool? get isMoveRejected;
+  String? get rejectedMove;
 }
 
 abstract class Peripheral {
-  List<String> get features;
-  List<String> get variants;
-  PeripheralRound get round;
+  bool isFeatureSupported(String feature);
+  bool isVariantSupported(String variant);
+
   bool get isInitialized;
+  Round get round;
+  bool get areOptionsInitialized;
+  List<String> get options;
 
-  Stream<String> get fenStream;
+  Stream<void> get initializedStream;
+  Stream<void> get roundInitializedStream;
+  Stream<void> get roundUpdateStream;
+  Stream<bool> get stateSynchronizeStream;
   Stream<String> get moveStream;
-  Stream<bool> get isVariantSynchronizedStream;
-  Stream<bool> get isFenSynchronizedStream;
-  Stream<bool> get isInitializedStream;
-
+  Stream<String> get errStream;
   Stream<String> get msgStream;
-  Stream<String> get errorStream;
+  Stream<String> get undoStream;
+  Stream<void> get movedStream;
+  Stream<void> get resignStream;
+  Stream<void> get drawOfferStream;
+  Stream<bool> get drawOfferAckStream;
+  Stream<void> get optionsUpdateStream;
 
-  void handleRoundBegin();
-  void handleRoundChange();
-  void handleMoveRejection();
+  Future<void> handleBegin({
+    required String fen,
+    String? variant,
+    String? side,
+    String? lastMove,
+    String? check,
+    String? time,
+  });
+  Future<void> handleMove({
+    required String move,
+    String? check,
+    String? time,
+  });
+  Future<void> handleReject();
+  Future<void> handleEnd({
+    String? reason,
+    String? drawReason,
+    String? variantReason,
+    String? score,
+  });
+  Future<void> handleErr({
+    required String err,
+  });
+  Future<void> handleMsg({
+    required String msg,
+  });
+  Future<void> handleUndo({
+    required String move,
+    String? lastMove,
+    String? check,
+    String? time,
+  });
+  Future<void> handleDrawOffer();
+  Future<void> handleGetState();
+  Future<void> handleSetState();
+  Future<void> handleState({
+    required String fen,
+  });
+  // Future<void> handleOptionsBegin();
+  // Future<void> handleOptionsReset();
+  // Future<void> handleSetOption({
+  //   required String option,
+  // });
 }
