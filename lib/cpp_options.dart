@@ -2,9 +2,15 @@ import 'package:universal_chess_driver/option.dart';
 import 'package:universal_chess_driver/string_consts.dart';
 
 class CppOptions {
-  final Map<String, Option> options = {};
+  final Map<String, Option> map = {};
+  final List<Option> list = [];
 
-  Iterable<Option> get values => options.values;
+  List<Option> get values => list;
+
+  void _add(Option option) {
+    map[option.name] = option;
+    list.add(option);
+  }
 
   void add(String cmd) {
     final split = cmd.split(' ');
@@ -12,37 +18,37 @@ class CppOptions {
     final type = split[1];
 
     if (type == OptionType.bool && split.length == 3) {
-      options[name] = BoolOption(
+      _add(BoolOption(
         name: name,
         defaultValue: bool.parse(split[2]),
-      );
+      ));
     } else if (type == OptionType.enu && split.length > 3) {
-      options[name] = EnumOption(
+      _add(EnumOption(
         name: name,
         defaultValue: split[2],
         enumValues: split.sublist(3),
-      );
+      ));
     } else if (type == OptionType.str && split.length > 2) {
-      options[name] = StrOption(
+      _add(StrOption(
         name: name,
         defaultValue: split.sublist(2).join(' '),
-      );
+      ));
     } else if (type == OptionType.int && split.length > 4) {
-      options[name] = IntOption(
+      _add(IntOption(
         name: name,
         defaultValue: int.parse(split[2]),
         min: int.parse(split[3]),
         max: int.parse(split[4]),
         step: split.length > 5 ? int.parse(split[5]) : null,
-      );
+      ));
     } else if (type == OptionType.float && split.length > 4) {
-      options[name] = FloatOption(
+      _add(FloatOption(
         name: name,
         defaultValue: double.parse(split[2]),
         min: double.parse(split[3]),
         max: double.parse(split[4]),
         step: split.length > 5 ? double.parse(split[5]) : null,
-      );
+      ));
     }
   }
 
@@ -50,7 +56,7 @@ class CppOptions {
     final split = cmd.split(' ');
     final name = split[0];
     final value = split[1];
-    final option = options[name];
+    final option = map[name];
 
     if (option is BoolOption) {
       option.value = value == 'true';

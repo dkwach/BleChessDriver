@@ -15,7 +15,7 @@ abstract class Peripheral {
   bool get isInitialized;
   Round get round;
   bool get areOptionsInitialized;
-  Iterable<Option> get options;
+  List<Option> get options;
 
   Stream<void> get initializedStream;
   Stream<void> get roundInitializedStream;

@@ -69,7 +69,7 @@ class CppPeripheral implements Peripheral {
   @override
   bool get areOptionsInitialized => areCppOptionsInitialized;
   @override
-  Iterable<Option> get options => cppOptions.values;
+  List<Option> get options => cppOptions.values;
 
   @override
   Stream<void> get initializedStream => initializedController.stream;
