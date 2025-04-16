@@ -60,10 +60,22 @@ class IdleState extends CppPeripheralState {
   @override
   Future<void> handlePeripheralCommand(String cmd) async {
     if (cmd.startsWith(Command.state)) {
-      final fen = getCommandParams(cmd);
       round.isMoveRejected = false;
-      round.fen = fen;
+      round.fen = getCommandParams(cmd);
       sendRoundUpdateToCentral();
+    } else if (cmd.startsWith(Command.option)) {
+      context.cppOptions.add(getCommandParams(cmd));
+    } else if (cmd.startsWith(Command.setOption)) {
+      context.cppOptions.set(getCommandParams(cmd));
+      if (context.areCppOptionsInitialized) {
+        sendOptionsUpdateToCentral();
+      }
+    } else if (cmd.startsWith(Command.optionsEnd)) {
+      context.areCppOptionsInitialized = true;
+      sendOptionsUpdateToCentral();
+    } else if (cmd.startsWith(Command.optionsReset)) {
+      context.cppOptions.reset();
+      sendOptionsUpdateToCentral();
     } else {
       await super.handlePeripheralCommand(cmd);
     }
@@ -142,6 +154,26 @@ class IdleState extends CppPeripheralState {
     required String fen,
   }) async {
     await sendCommandToPrtipheral(join(Command.state, fen));
+  }
+
+  @override
+  Future<void> handleOptionsBegin() async {
+    await sendCommandToPrtipheral(Command.optionsBegin);
+  }
+
+  @override
+  Future<void> handleOptionsReset() async {
+    await sendCommandToPrtipheral(Command.optionsReset);
+    context.cppOptions.reset();
+    sendOptionsUpdateToCentral();
+  }
+
+  @override
+  Future<void> handleSetOption({
+    required String name,
+    required String value,
+  }) async {
+    await sendCommandToPrtipheral(join(Command.setOption, join(name, value)));
   }
 }
 
@@ -222,28 +254,25 @@ class RoundBeginState extends RoundState {
   @override
   Future<void> handlePeripheralCommand(String cmd) async {
     if (cmd.startsWith(Command.sync)) {
-      final fen = getCommandParams(cmd);
       round.isStateSynchronized = true;
       round.isStateSetible = false;
-      round.fen = fen;
+      round.fen = getCommandParams(cmd);
       round.isMoveRejected = false;
       transitionTo(RoundOngoingState());
       sendRoundInitializedToCentral();
       sendStateSynchronizeToCentral(true);
     } else if (cmd.startsWith(Command.unsyncSetible)) {
-      final fen = getCommandParams(cmd);
       round.isStateSynchronized = false;
       round.isStateSetible = true;
-      round.fen = fen;
+      round.fen = getCommandParams(cmd);
       round.isMoveRejected = false;
       transitionTo(RoundOngoingState());
       sendRoundInitializedToCentral();
       sendStateSynchronizeToCentral(false);
     } else if (cmd.startsWith(Command.unsync)) {
-      final fen = getCommandParams(cmd);
       round.isStateSynchronized = false;
       round.isStateSetible = false;
-      round.fen = fen;
+      round.fen = getCommandParams(cmd);
       round.isMoveRejected = false;
       transitionTo(RoundOngoingState());
       sendRoundInitializedToCentral();

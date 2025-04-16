@@ -156,6 +156,21 @@ class CppPeripheralState {
     handleCentralUnexpected(Command.state);
   }
 
+  Future<void> handleOptionsBegin() async {
+    handleCentralUnexpected(Command.optionsBegin);
+  }
+
+  Future<void> handleOptionsReset() async {
+    handleCentralUnexpected(Command.optionsReset);
+  }
+
+  Future<void> handleSetOption({
+    required String name,
+    required String value,
+  }) async {
+    handleCentralUnexpected(Command.setOption);
+  }
+
   void handleCentralUnexpected(String event) {
     sendErrToCentral('Unexpected: $runtimeType: central $event');
   }

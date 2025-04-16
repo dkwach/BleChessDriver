@@ -74,7 +74,7 @@ class FloatOption extends Option {
         super(name: name);
 }
 
-class Options {
+class CppOptions {
   final Map<String, Option> options = {};
 
   Iterable<Option> get values => options.values;
@@ -135,6 +135,22 @@ class Options {
       option.value = int.parse(value);
     } else if (option is FloatOption) {
       option.value = double.parse(value);
+    }
+  }
+
+  void reset() {
+    for (var option in values) {
+      if (option is BoolOption) {
+        option.value = option.defaultValue;
+      } else if (option is EnumOption) {
+        option.value = option.defaultValue;
+      } else if (option is StrOption) {
+        option.value = option.defaultValue;
+      } else if (option is IntOption) {
+        option.value = option.defaultValue;
+      } else if (option is FloatOption) {
+        option.value = option.defaultValue;
+      }
     }
   }
 }

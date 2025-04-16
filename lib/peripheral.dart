@@ -1,3 +1,5 @@
+import 'package:universal_chess_driver/cpp_options.dart';
+
 abstract class Round {
   bool get isVariantSupported;
   bool get isStateSynchronized;
@@ -13,7 +15,7 @@ abstract class Peripheral {
   bool get isInitialized;
   Round get round;
   bool get areOptionsInitialized;
-  List<String> get options;
+  Iterable<Option> get options;
 
   Stream<void> get initializedStream;
   Stream<void> get roundInitializedStream;
@@ -67,9 +69,10 @@ abstract class Peripheral {
   Future<void> handleState({
     required String fen,
   });
-  // Future<void> handleOptionsBegin();
-  // Future<void> handleOptionsReset();
-  // Future<void> handleSetOption({
-  //   required String option,
-  // });
+  Future<void> handleOptionsBegin();
+  Future<void> handleOptionsReset();
+  Future<void> handleSetOption({
+    required String name,
+    required String value,
+  });
 }

@@ -5,6 +5,7 @@ import 'package:universal_chess_driver/peripheral.dart';
 import 'package:universal_chess_driver/string_serial.dart';
 import 'package:universal_chess_driver/string_consts.dart';
 import 'package:universal_chess_driver/cpp_round.dart';
+import 'package:universal_chess_driver/cpp_options.dart';
 import 'package:universal_chess_driver/cpp_peripheral_state.dart';
 import 'package:universal_chess_driver/cpp_peripheral_states.dart';
 
@@ -36,8 +37,10 @@ class CppPeripheral implements Peripheral {
   final StringSerial serial;
   final List<String> cppFeatures = [];
   final List<String> cppVariants = [];
-  final CppRound cppRound = CppRound();
   bool isCppInitialized = false;
+  final CppRound cppRound = CppRound();
+  bool areCppOptionsInitialized = false;
+  CppOptions cppOptions = CppOptions();
   final initializedController = StreamController<void>();
   final roundInitializedController = StreamController<void>();
   final roundUpdateController = StreamController<void>();
@@ -63,9 +66,9 @@ class CppPeripheral implements Peripheral {
   @override
   Round get round => cppRound;
   @override
-  bool get areOptionsInitialized => false;
+  bool get areOptionsInitialized => areCppOptionsInitialized;
   @override
-  List<String> get options => [];
+  Iterable<Option> get options => cppOptions.values;
 
   @override
   Stream<void> get initializedStream => initializedController.stream;
@@ -194,6 +197,27 @@ class CppPeripheral implements Peripheral {
   }) async {
     await state.handleCentralState(
       fen: fen,
+    );
+  }
+
+  @override
+  Future<void> handleOptionsBegin() async {
+    await state.handleOptionsBegin();
+  }
+
+  @override
+  Future<void> handleOptionsReset() async {
+    await state.handleOptionsReset();
+  }
+
+  @override
+  Future<void> handleSetOption({
+    required String name,
+    required String value,
+  }) async {
+    await state.handleSetOption(
+      name: name,
+      value: value,
     );
   }
 
