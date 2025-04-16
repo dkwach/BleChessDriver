@@ -1,6 +1,9 @@
 abstract class Option {
   final String name;
+
   Option({required this.name});
+
+  String get valueString;
 }
 
 class BoolOption extends Option {
@@ -12,6 +15,8 @@ class BoolOption extends Option {
     required this.defaultValue,
   })  : value = defaultValue,
         super(name: name);
+
+  String get valueString => value.toString();
 }
 
 class EnumOption extends Option {
@@ -25,6 +30,8 @@ class EnumOption extends Option {
     required this.enumValues,
   })  : value = defaultValue,
         super(name: name);
+
+  String get valueString => value;
 }
 
 class StrOption extends Option {
@@ -36,6 +43,8 @@ class StrOption extends Option {
     required this.defaultValue,
   })  : value = defaultValue,
         super(name: name);
+
+  String get valueString => value;
 }
 
 class IntOption extends Option {
@@ -53,6 +62,8 @@ class IntOption extends Option {
     this.step,
   })  : value = defaultValue,
         super(name: name);
+
+  String get valueString => value.toString();
 }
 
 class FloatOption extends Option {
@@ -70,4 +81,6 @@ class FloatOption extends Option {
     this.step,
   })  : value = defaultValue,
         super(name: name);
+
+  String get valueString => value.toString();
 }

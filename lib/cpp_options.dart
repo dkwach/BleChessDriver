@@ -14,7 +14,7 @@ class CppOptions {
     if (type == OptionType.bool && split.length == 3) {
       options[name] = BoolOption(
         name: name,
-        defaultValue: split[2] == 'true',
+        defaultValue: bool.parse(split[2]),
       );
     } else if (type == OptionType.enu && split.length > 3) {
       options[name] = EnumOption(
