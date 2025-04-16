@@ -158,7 +158,9 @@ class IdleState extends CppPeripheralState {
 
   @override
   Future<void> handleOptionsBegin() async {
-    await sendCommandToPrtipheral(Command.optionsBegin);
+    if (!context.areCppOptionsInitialized) {
+      await sendCommandToPrtipheral(Command.optionsBegin);
+    }
   }
 
   @override
