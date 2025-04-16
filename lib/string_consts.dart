@@ -66,7 +66,6 @@ class Command {
 class EndReason {
   static const undefined = 'undefined';
   static const checkmate = 'checkmate';
-  static const stalemate = 'stalemate';
   static const draw = 'draw';
   static const timeout = 'timeout';
   static const resign = 'resign';
@@ -75,6 +74,7 @@ class EndReason {
 
 class DrawReason {
   static const drawOffer = Feature.drawOffer;
+  static const stalemate = 'stalemate';
   static const threefoldRepetition = 'threefold_repetition';
   static const fiftyMove = 'fifty_move';
   static const insufficientMaterial = 'insufficient_material';

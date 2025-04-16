@@ -98,7 +98,10 @@ class RoundScreenState extends State<RoundScreen> {
       peripheral?.handleEnd(reason: EndReason.draw);
     } else if (game.in_stalemate) {
       _showMessage('Stalemate');
-      peripheral?.handleEnd(reason: EndReason.stalemate);
+      peripheral?.handleEnd(
+        reason: EndReason.draw,
+        drawReason: DrawReason.stalemate,
+      );
     } else if (game.in_threefold_repetition) {
       _showMessage('Threefold repetition');
       peripheral?.handleEnd(
