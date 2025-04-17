@@ -37,7 +37,27 @@ class Variants {
   final crazyHouse = Support(Variant.crazyHouse);
 }
 
+typedef CentralFeature = Support Function(Features features);
 typedef CentralVariant = Support Function(Variants variants);
+
+class CentralFeatures {
+  static final CentralFeature getState = (f) => f.getState;
+  static final CentralFeature setState = (f) => f.setState;
+  static final CentralFeature stateStream = (f) => f.stateStream;
+  static final CentralFeature lastMove = (f) => f.lastMove;
+  static final CentralFeature check = (f) => f.check;
+  static final CentralFeature undo = (f) => f.undo;
+  static final CentralFeature moved = (f) => f.moved;
+  static final CentralFeature msg = (f) => f.msg;
+  static final CentralFeature resign = (f) => f.resign;
+  static final CentralFeature drawOffer = (f) => f.drawOffer;
+  static final CentralFeature side = (f) => f.side;
+  static final CentralFeature time = (f) => f.time;
+  static final CentralFeature score = (f) => f.score;
+  static final CentralFeature option = (f) => f.option;
+  static final CentralFeature drawReason = (f) => f.drawReason;
+  static final CentralFeature variantReason = (f) => f.variantReason;
+}
 
 class CentralVariants {
   static final CentralVariant standard = (v) => v.standard;
