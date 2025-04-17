@@ -266,20 +266,21 @@ class RoundScreenState extends State<RoundScreen> {
           title: Text(blePeripheral.name ?? ''),
           centerTitle: true,
           actions: [
-            IconButton(
-              icon: const Icon(Icons.settings_rounded),
-              onPressed: peripheral.isInitialized
-                  ? () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              OptionsScreen(peripheral: peripheral),
-                        ),
-                      );
-                    }
-                  : null,
-            ),
+            if (peripheral.isFeatureSupported(Feature.option))
+              IconButton(
+                icon: const Icon(Icons.settings_rounded),
+                onPressed: peripheral.isInitialized
+                    ? () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                OptionsScreen(peripheral: peripheral),
+                          ),
+                        );
+                      }
+                    : null,
+              ),
           ],
         ),
         body: SafeArea(
