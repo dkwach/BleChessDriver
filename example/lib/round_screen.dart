@@ -129,6 +129,10 @@ class RoundScreenState extends State<RoundScreen> {
     }
   }
 
+  void _handleAutocomplete() {
+    peripheral.handleSetState();
+  }
+
   Future<void> _initPeripheral() async {
     final mtu = bleConnector.createMtu();
     final requestedMtu = await mtu.request(mtu: maxStringSize);
@@ -200,18 +204,31 @@ class RoundScreenState extends State<RoundScreen> {
         onMove: _handleCentralMove,
       );
 
-  Widget _buildNewRoundButton() => SizedBox(
+  Widget _buildNewRoundButton() => FilledButton.icon(
+      icon: const Icon(Icons.refresh_rounded),
+      label: Text('New round'),
+      onPressed: peripheral.isInitialized ? _beginNewRound : null);
+
+  Widget _buildAutocompleteButton() => FilledButton.icon(
+        icon: const Icon(Icons.auto_awesome_rounded),
+        label: Text('Autocomplete'),
+        onPressed: peripheral.round.isStateSetible ? _handleAutocomplete : null,
+      );
+
+  Widget _buildControlButtons() => SizedBox(
         height: buttonHeight,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              child: FilledButton.icon(
-                icon: const Icon(Icons.refresh_rounded),
-                label: Text('New round'),
-                onPressed: peripheral.isInitialized ? _beginNewRound : null,
-              ),
+              child: _buildNewRoundButton(),
             ),
+            if (peripheral.isFeatureSupported(Feature.setState))
+              const SizedBox(width: buttonsSplitter),
+            if (peripheral.isFeatureSupported(Feature.setState))
+              Expanded(
+                child: _buildAutocompleteButton(),
+              ),
           ],
         ),
       );
@@ -233,7 +250,7 @@ class RoundScreenState extends State<RoundScreen> {
               padding: EdgeInsets.symmetric(
                 horizontal: screenPadding,
               ),
-              child: _buildNewRoundButton(),
+              child: _buildControlButtons(),
             ),
           ],
         ),
