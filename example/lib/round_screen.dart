@@ -214,11 +214,10 @@ class RoundScreenState extends State<RoundScreen> {
   }
 
   Widget _buildChessBoardWidget() => ChessBoard(
-        controller: chessController,
-        boardColor: BoardColor.darkBrown,
-        boardOrientation: PlayerColor.white,
-        onMove: _handleCentralMove,
-      );
+      controller: chessController,
+      boardColor: BoardColor.darkBrown,
+      boardOrientation: PlayerColor.white,
+      onMove: _handleCentralMove);
 
   Widget _buildNewRoundButton() => FilledButton.icon(
       icon: const Icon(Icons.refresh_rounded),
@@ -226,10 +225,9 @@ class RoundScreenState extends State<RoundScreen> {
       onPressed: peripheral.isInitialized ? _beginNewRound : null);
 
   Widget _buildAutocompleteButton() => FilledButton.icon(
-        icon: const Icon(Icons.auto_awesome_rounded),
-        label: Text('Autocomplete'),
-        onPressed: peripheral.round.isStateSetible ? _handleAutocomplete : null,
-      );
+      icon: const Icon(Icons.auto_awesome_rounded),
+      label: Text('Autocomplete'),
+      onPressed: peripheral.round.isStateSetible ? _handleAutocomplete : null);
 
   Widget _buildControlButtons() => SizedBox(
         height: buttonHeight,
