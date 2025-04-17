@@ -10,6 +10,7 @@ import 'package:universal_chess_driver/ble_consts.dart';
 import 'package:universal_chess_driver/ble_string_serial.dart';
 import 'package:universal_chess_driver/ble_uuids.dart';
 import 'package:universal_chess_driver/cpp_peripheral.dart';
+import 'package:universal_chess_driver/dummy_peripheral.dart';
 import 'package:universal_chess_driver/peripheral.dart';
 import 'package:universal_chess_driver/string_consts.dart';
 
@@ -32,9 +33,10 @@ class RoundScreen extends StatefulWidget {
 class RoundScreenState extends State<RoundScreen> {
   RoundScreenState({
     required ChessBoardController chessController,
-  }) : chessController = chessController;
+  })  : chessController = chessController,
+        peripheral = DummyPeripheral();
   ChessBoardController chessController;
-  Peripheral? peripheral;
+  Peripheral peripheral;
   StreamSubscription? _subscription;
 
   BlePeripheral get blePeripheral => widget.blePeripheral;
@@ -44,7 +46,7 @@ class RoundScreenState extends State<RoundScreen> {
 
   void _beginNewRound() {
     chessController.resetBoard();
-    peripheral?.handleBegin(
+    peripheral.handleBegin(
       fen: chessController.getFen(),
       variant: Variant.standard,
       lastMove: lastMove,
@@ -75,7 +77,7 @@ class RoundScreenState extends State<RoundScreen> {
   }
 
   void _handlePeripheralRoundInitialized(_) {
-    if (!peripheral!.round.isVariantSupported) {
+    if (!peripheral.round.isVariantSupported) {
       _showMessage('Unsupported variant');
     }
   }
@@ -85,32 +87,32 @@ class RoundScreenState extends State<RoundScreen> {
   }
 
   void _handleCentralMove() {
-    peripheral?.handleMove(move: lastMove!);
+    peripheral.handleMove(move: lastMove!);
     _handleCentralEnd();
   }
 
   void _handleCentralEnd() {
     if (game.in_checkmate) {
       _showMessage('Checkmate');
-      peripheral?.handleEnd(reason: EndReason.checkmate);
+      peripheral.handleEnd(reason: EndReason.checkmate);
     } else if (game.in_draw) {
       _showMessage('Draw');
-      peripheral?.handleEnd(reason: EndReason.draw);
+      peripheral.handleEnd(reason: EndReason.draw);
     } else if (game.in_stalemate) {
       _showMessage('Stalemate');
-      peripheral?.handleEnd(
+      peripheral.handleEnd(
         reason: EndReason.draw,
         drawReason: DrawReason.stalemate,
       );
     } else if (game.in_threefold_repetition) {
       _showMessage('Threefold repetition');
-      peripheral?.handleEnd(
+      peripheral.handleEnd(
         reason: EndReason.draw,
         drawReason: DrawReason.threefoldRepetition,
       );
     } else if (game.insufficient_material) {
       _showMessage('Insufficient material');
-      peripheral?.handleEnd(
+      peripheral.handleEnd(
         reason: EndReason.draw,
         drawReason: DrawReason.insufficientMaterial,
       );
@@ -121,7 +123,7 @@ class RoundScreenState extends State<RoundScreen> {
     if (chessController.makeMoveUci(uci: uci)) {
       _handleCentralMove();
     } else {
-      peripheral?.handleReject();
+      peripheral.handleReject();
       _showMessage('Rejected');
     }
   }
@@ -145,20 +147,18 @@ class RoundScreenState extends State<RoundScreen> {
         stringSerial: serial,
         features: [Feature.msg, Feature.lastMove],
         variants: [Variant.standard]);
-    peripheral?.initializedStream.listen(_handlePeripheralInitialized);
-    peripheral?.roundInitializedStream
-        .listen(_handlePeripheralRoundInitialized);
-    peripheral?.stateSynchronizeStream
-        .listen(_handlePeripheralStateSynchronize);
-    peripheral?.moveStream.listen(_handlePeripheralMove);
-    peripheral?.errStream.listen(_showError);
-    peripheral?.msgStream.listen(_showMessage);
+    peripheral.initializedStream.listen(_handlePeripheralInitialized);
+    peripheral.roundInitializedStream.listen(_handlePeripheralRoundInitialized);
+    peripheral.stateSynchronizeStream.listen(_handlePeripheralStateSynchronize);
+    peripheral.moveStream.listen(_handlePeripheralMove);
+    peripheral.errStream.listen(_showError);
+    peripheral.msgStream.listen(_showMessage);
   }
 
   void _onConnectionStateChanged(BleConnectorStatus state) {
     setState(() {
       if (state == BleConnectorStatus.disconnected) {
-        peripheral = null;
+        peripheral = DummyPeripheral();
       } else if (state == BleConnectorStatus.connected) {
         _initPeripheral();
       }
@@ -208,8 +208,7 @@ class RoundScreenState extends State<RoundScreen> {
               child: FilledButton.icon(
                 icon: const Icon(Icons.refresh_rounded),
                 label: Text('New round'),
-                onPressed:
-                    peripheral?.isInitialized == true ? _beginNewRound : null,
+                onPressed: peripheral.isInitialized ? _beginNewRound : null,
               ),
             ),
           ],
