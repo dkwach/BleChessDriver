@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:universal_chess_driver/string_consts.dart';
-import 'package:universal_chess_driver/utils.dart';
 import 'package:universal_chess_driver/cpp_round.dart';
 import 'package:universal_chess_driver/cpp_peripheral.dart';
 
@@ -81,14 +80,7 @@ class CppPeripheralState {
   void onEnter() {}
 
   Future<void> handlePeripheralCommand(String cmd) async {
-    if (cmd.startsWith(Command.err)) {
-      sendErrToCentral(getCommandParams(cmd));
-    }
-    if (cmd.startsWith(Command.msg) && isFeatureSupported(Feature.msg)) {
-      sendMsgToCentral(getCommandParams(cmd));
-    } else {
-      sendErrToCentral('Unexpected: $runtimeType: periphrtal $cmd');
-    }
+    sendErrToCentral('Unexpected: $runtimeType: periphrtal $cmd');
   }
 
   Future<void> handleCentralBegin({
