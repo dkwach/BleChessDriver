@@ -72,6 +72,12 @@ class EndReason {
   static const abort = 'abort';
 }
 
+class Side {
+  static const white = 'w';
+  static const black = 'b';
+  static const both = '?';
+}
+
 class DrawReason {
   static const drawOffer = Feature.drawOffer;
   static const stalemate = 'stalemate';

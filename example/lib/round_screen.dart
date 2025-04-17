@@ -50,6 +50,7 @@ class RoundScreenState extends State<RoundScreen> {
     peripheral.handleBegin(
       fen: chessController.getFen(),
       variant: Variant.standard,
+      side: Side.both,
       lastMove: lastMove,
     );
   }
@@ -153,6 +154,7 @@ class RoundScreenState extends State<RoundScreen> {
     final features = [
       Feature.msg,
       Feature.lastMove,
+      Feature.side,
       Feature.setState,
       Feature.stateStream,
       Feature.drawReason,
