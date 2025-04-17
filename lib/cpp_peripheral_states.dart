@@ -63,10 +63,6 @@ class IdleState extends CppPeripheralState {
       round.isMoveRejected = false;
       round.fen = getCommandParams(cmd);
       sendRoundUpdateToCentral();
-    } else if (cmd.startsWith(Command.option)) {
-      if (!context.cppOptions.add(getCommandParams(cmd))) {
-        sendErrToCentral('Option add failed: $cmd');
-      }
     } else if (cmd.startsWith(Command.setOption)) {
       if (!context.cppOptions.set(getCommandParams(cmd))) {
         sendErrToCentral('Option set failed: $cmd');
@@ -79,6 +75,10 @@ class IdleState extends CppPeripheralState {
     } else if (cmd.startsWith(Command.optionsReset)) {
       context.cppOptions.reset();
       sendOptionsUpdateToCentral();
+    } else if (cmd.startsWith(Command.option)) {
+      if (!context.cppOptions.add(getCommandParams(cmd))) {
+        sendErrToCentral('Option add failed: $cmd');
+      }
     } else {
       await super.handlePeripheralCommand(cmd);
     }

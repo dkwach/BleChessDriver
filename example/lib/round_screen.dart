@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:ble_backend/ble_connector.dart';
 import 'package:ble_backend/ble_peripheral.dart';
 import 'package:ble_backend_screens/ui/ui_consts.dart';
+import 'package:ble_chess_example/options_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -264,6 +265,22 @@ class RoundScreenState extends State<RoundScreen> {
         appBar: AppBar(
           title: Text(blePeripheral.name ?? ''),
           centerTitle: true,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.settings_rounded),
+              onPressed: peripheral.isInitialized
+                  ? () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              OptionsScreen(peripheral: peripheral),
+                        ),
+                      );
+                    }
+                  : null,
+            ),
+          ],
         ),
         body: SafeArea(
           child: OrientationBuilder(

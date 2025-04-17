@@ -82,5 +82,5 @@ class FloatOption extends Option {
   })  : value = defaultValue,
         super(name: name);
 
-  String get valueString => value.toString();
+  String get valueString => value.toStringAsFixed(2);
 }
