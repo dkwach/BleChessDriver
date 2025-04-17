@@ -144,14 +144,27 @@ class RoundScreenState extends State<RoundScreen> {
     }
 
     final serial = BleStringSerial(
-        bleSerial: bleConnector.createSerial(
-            serviceId: serviceUuid,
-            rxCharacteristicId: characteristicUuidRx,
-            txCharacteristicId: characteristicUuidTx));
+      bleSerial: bleConnector.createSerial(
+        serviceId: serviceUuid,
+        rxCharacteristicId: characteristicUuidRx,
+        txCharacteristicId: characteristicUuidTx,
+      ),
+    );
+    final features = [
+      Feature.msg,
+      Feature.lastMove,
+      Feature.setState,
+      Feature.drawReason,
+      Feature.option,
+    ];
+    final variants = [
+      Variant.standard,
+    ];
     peripheral = CppPeripheral(
-        stringSerial: serial,
-        features: [Feature.msg, Feature.lastMove],
-        variants: [Variant.standard]);
+      stringSerial: serial,
+      features: features,
+      variants: variants,
+    );
     peripheral.initializedStream.listen(_handlePeripheralInitialized);
     peripheral.roundInitializedStream.listen(_handlePeripheralRoundInitialized);
     peripheral.stateSynchronizeStream.listen(_handlePeripheralStateSynchronize);
