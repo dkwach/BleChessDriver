@@ -96,9 +96,6 @@ class RoundScreenState extends State<RoundScreen> {
     if (game.in_checkmate) {
       _showMessage('Checkmate');
       peripheral.handleEnd(reason: EndReason.checkmate);
-    } else if (game.in_draw) {
-      _showMessage('Draw');
-      peripheral.handleEnd(reason: EndReason.draw);
     } else if (game.in_stalemate) {
       _showMessage('Stalemate');
       peripheral.handleEnd(
@@ -117,6 +114,9 @@ class RoundScreenState extends State<RoundScreen> {
         reason: EndReason.draw,
         drawReason: DrawReason.insufficientMaterial,
       );
+    } else if (game.in_draw) {
+      _showMessage('Draw');
+      peripheral.handleEnd(reason: EndReason.draw);
     }
   }
 
