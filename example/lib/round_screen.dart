@@ -154,6 +154,7 @@ class RoundScreenState extends State<RoundScreen> {
       Feature.msg,
       Feature.lastMove,
       Feature.setState,
+      Feature.stateStream,
       Feature.drawReason,
       Feature.option,
     ];
