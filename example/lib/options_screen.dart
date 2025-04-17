@@ -23,10 +23,6 @@ class OptionsScreenState extends State<OptionsScreen> {
   bool get areOptionsInitialized => peripheral.areOptionsInitialized;
   List<Option> get options => peripheral.options;
 
-  void _updateOptions(_) {
-    setState(() {});
-  }
-
   @override
   void initState() {
     super.initState();
@@ -40,6 +36,10 @@ class OptionsScreenState extends State<OptionsScreen> {
     super.dispose();
   }
 
+  void _updateOptions(_) {
+    setState(() {});
+  }
+
   String _convertToReadable(String str) => str
       .split('_')
       .map((word) => word[0].toUpperCase() + word.substring(1))
@@ -50,7 +50,7 @@ class OptionsScreenState extends State<OptionsScreen> {
         style: const TextStyle(fontWeight: FontWeight.bold),
       );
 
-  Widget _crateBoolOption(BoolOption option) => ListTile(
+  Widget _createBoolOption(BoolOption option) => ListTile(
         title: _createTitle(option),
         trailing: Switch(
           value: option.value,
@@ -66,7 +66,7 @@ class OptionsScreenState extends State<OptionsScreen> {
         ),
       );
 
-  Widget _crateEnumOption(EnumOption option) => ListTile(
+  Widget _createEnumOption(EnumOption option) => ListTile(
         title: _createTitle(option),
         trailing: DropdownMenu<String>(
           initialSelection: option.value,
@@ -88,7 +88,7 @@ class OptionsScreenState extends State<OptionsScreen> {
         ),
       );
 
-  Widget _crateStrOption(StrOption option) => ListTile(
+  Widget _createStrOption(StrOption option) => ListTile(
         title: _createTitle(option),
         subtitle: TextFormField(
           controller: TextEditingController(text: option.value),
@@ -108,7 +108,7 @@ class OptionsScreenState extends State<OptionsScreen> {
         ),
       );
 
-  Widget _crateIntOption(IntOption option) => ListTile(
+  Widget _createIntOption(IntOption option) => ListTile(
         title: _createTitle(option),
         subtitle: Slider(
           value: option.value.toDouble(),
@@ -130,7 +130,7 @@ class OptionsScreenState extends State<OptionsScreen> {
         ),
       );
 
-  Widget _crateFloatOption(FloatOption option) => ListTile(
+  Widget _createFloatOption(FloatOption option) => ListTile(
         title: _createTitle(option),
         subtitle: Slider(
           value: option.value,
@@ -152,17 +152,17 @@ class OptionsScreenState extends State<OptionsScreen> {
         ),
       );
 
-  Widget _creatrOption(Option option) {
+  Widget _createOption(Option option) {
     if (option is BoolOption) {
-      return _crateBoolOption(option);
+      return _createBoolOption(option);
     } else if (option is EnumOption) {
-      return _crateEnumOption(option);
+      return _createEnumOption(option);
     } else if (option is StrOption) {
-      return _crateStrOption(option);
+      return _createStrOption(option);
     } else if (option is IntOption) {
-      return _crateIntOption(option);
+      return _createIntOption(option);
     } else if (option is FloatOption) {
-      return _crateFloatOption(option);
+      return _createFloatOption(option);
     } else {
       return const SizedBox.shrink();
     }
@@ -189,12 +189,10 @@ class OptionsScreenState extends State<OptionsScreen> {
         ],
       ),
       body: SafeArea(
-        child: ListView.separated(
+        child: ListView.builder(
           itemCount: areOptionsInitialized ? options.length : 0,
-          separatorBuilder: (BuildContext context, int index) =>
-              const SizedBox(),
           itemBuilder: (BuildContext context, int index) {
-            return _creatrOption(options[index]);
+            return _createOption(options[index]);
           },
         ),
       ),
