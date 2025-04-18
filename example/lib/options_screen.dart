@@ -117,7 +117,7 @@ class OptionsScreenState extends State<OptionsScreen> {
           divisions: option.step != null
               ? ((option.max - option.min) / option.step!).round()
               : null,
-          label: option.value.toString(),
+          label: option.valueString,
           onChanged: (double value) {
             setState(() {
               option.value = value.toInt();
