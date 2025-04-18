@@ -26,18 +26,12 @@ class RoundScreen extends StatefulWidget {
   final BlePeripheral blePeripheral;
 
   @override
-  State<RoundScreen> createState() => RoundScreenState(
-        chessController: ChessBoardController(),
-      );
+  State<RoundScreen> createState() => RoundScreenState();
 }
 
 class RoundScreenState extends State<RoundScreen> {
-  RoundScreenState({
-    required ChessBoardController chessController,
-  })  : chessController = chessController,
-        peripheral = DummyPeripheral();
-  ChessBoardController chessController;
-  Peripheral peripheral;
+  ChessBoardController chessController = ChessBoardController();
+  Peripheral peripheral = DummyPeripheral();
   StreamSubscription? _subscription;
 
   BlePeripheral get blePeripheral => widget.blePeripheral;
