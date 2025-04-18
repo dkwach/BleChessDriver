@@ -302,26 +302,23 @@ class RoundOngoingState extends RoundState {
       transitionTo(PeripheralMoveState());
       sendMoveToCentral(move);
     } else if (cmd.startsWith(Command.sync)) {
-      final fen = getCommandParams(cmd);
       round.isStateSynchronized = true;
       round.isStateSetible = false;
-      round.fen = fen;
+      round.fen = getCommandParams(cmd);
       round.isMoveRejected = false;
       sendRoundUpdateToCentral();
       sendStateSynchronizeToCentral(true);
     } else if (cmd.startsWith(Command.unsyncSetible)) {
-      final fen = getCommandParams(cmd);
       round.isStateSynchronized = false;
       round.isStateSetible = true;
-      round.fen = fen;
+      round.fen = getCommandParams(cmd);
       round.isMoveRejected = false;
       sendRoundUpdateToCentral();
       sendStateSynchronizeToCentral(false);
     } else if (cmd.startsWith(Command.unsync)) {
-      final fen = getCommandParams(cmd);
       round.isStateSynchronized = false;
       round.isStateSetible = false;
-      round.fen = fen;
+      round.fen = getCommandParams(cmd);
       round.isMoveRejected = false;
       sendRoundUpdateToCentral();
       sendStateSynchronizeToCentral(false);
