@@ -30,9 +30,10 @@ class RoundScreen extends StatefulWidget {
 }
 
 class RoundScreenState extends State<RoundScreen> {
+  StreamSubscription? _subscription;
   ChessBoardController chessController = ChessBoardController();
   Peripheral peripheral = DummyPeripheral();
-  StreamSubscription? _subscription;
+  bool isAutocompleteOngoing = false;
 
   BlePeripheral get blePeripheral => widget.blePeripheral;
   BleConnector get bleConnector => widget.bleConnector;
@@ -72,9 +73,18 @@ class RoundScreenState extends State<RoundScreen> {
   }
 
   void _handlePeripheralRoundInitialized(_) {
-    if (!peripheral.round.isVariantSupported) {
-      _showMessage('Unsupported variant');
-    }
+    setState(() {
+      isAutocompleteOngoing = false;
+      if (!peripheral.round.isVariantSupported) {
+        _showMessage('Unsupported variant');
+      }
+    });
+  }
+
+  void _handlePeripheralRoundUpdate(_) {
+    setState(() {
+      isAutocompleteOngoing = false;
+    });
   }
 
   void _handlePeripheralStateSynchronize(bool isSynchronized) {
@@ -124,7 +134,10 @@ class RoundScreenState extends State<RoundScreen> {
   }
 
   void _handleAutocomplete() {
-    peripheral.handleSetState();
+    setState(() {
+      isAutocompleteOngoing = true;
+      peripheral.handleSetState();
+    });
   }
 
   Future<void> _initPeripheral() async {
@@ -163,6 +176,7 @@ class RoundScreenState extends State<RoundScreen> {
     );
     peripheral.initializedStream.listen(_handlePeripheralInitialized);
     peripheral.roundInitializedStream.listen(_handlePeripheralRoundInitialized);
+    peripheral.roundUpdateStream.listen(_handlePeripheralRoundUpdate);
     peripheral.stateSynchronizeStream.listen(_handlePeripheralStateSynchronize);
     peripheral.moveStream.listen(_handlePeripheralMove);
     peripheral.errStream.listen(_showError);
@@ -220,7 +234,9 @@ class RoundScreenState extends State<RoundScreen> {
   Widget _buildAutocompleteButton() => FilledButton.icon(
       icon: const Icon(Icons.auto_awesome_rounded),
       label: Text('Autocomplete'),
-      onPressed: peripheral.round.isStateSetible ? _handleAutocomplete : null);
+      onPressed: peripheral.round.isStateSetible && !isAutocompleteOngoing
+          ? _handleAutocomplete
+          : null);
 
   Widget _buildControlButtons() => SizedBox(
         height: buttonHeight,
