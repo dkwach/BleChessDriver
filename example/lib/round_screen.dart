@@ -292,7 +292,7 @@ class RoundScreenState extends State<RoundScreen> {
             Expanded(
               child: Align(
                 alignment: Alignment.bottomCenter,
-                child: _buildNewRoundButton(),
+                child: _buildControlButtons(),
               ),
             ),
           ],
