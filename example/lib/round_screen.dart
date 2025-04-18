@@ -36,7 +36,6 @@ class RoundScreenState extends State<RoundScreen> {
 
   BlePeripheral get blePeripheral => widget.blePeripheral;
   BleConnector get bleConnector => widget.bleConnector;
-  BleConnectorStatus get connectionStatus => bleConnector.state;
   Chess get game => chessController.game;
 
   void _beginNewRound() {
