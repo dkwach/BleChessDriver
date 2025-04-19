@@ -228,7 +228,7 @@ class RoundScreenState extends State<RoundScreen> {
 
   Widget _buildNewRoundButton() => FilledButton.icon(
       icon: const Icon(Icons.refresh_rounded),
-      label: Text('New round'),
+      label: Text('New Round'),
       onPressed: peripheral.isInitialized ? _beginNewRound : null);
 
   Widget _buildAutocompleteButton() => FilledButton.icon(
