@@ -3,17 +3,17 @@ import 'dart:async';
 import 'package:ble_backend/ble_connector.dart';
 import 'package:ble_backend/ble_peripheral.dart';
 import 'package:ble_backend_screens/ui/ui_consts.dart';
+import 'package:ble_chess_driver/ble_consts.dart';
+import 'package:ble_chess_driver/ble_string_serial.dart';
+import 'package:ble_chess_driver/ble_uuids.dart';
+import 'package:ble_chess_driver/cpp_peripheral.dart';
+import 'package:ble_chess_driver/dummy_peripheral.dart';
+import 'package:ble_chess_driver/peripheral.dart';
+import 'package:ble_chess_driver/string_consts.dart';
 import 'package:ble_chess_example/options_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:universal_chess_driver/ble_consts.dart';
-import 'package:universal_chess_driver/ble_string_serial.dart';
-import 'package:universal_chess_driver/ble_uuids.dart';
-import 'package:universal_chess_driver/cpp_peripheral.dart';
-import 'package:universal_chess_driver/dummy_peripheral.dart';
-import 'package:universal_chess_driver/peripheral.dart';
-import 'package:universal_chess_driver/string_consts.dart';
 
 class RoundScreen extends StatefulWidget {
   RoundScreen({

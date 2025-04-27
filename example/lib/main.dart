@@ -1,10 +1,10 @@
 import 'package:ble_backend_factory/ble_central.dart';
 import 'package:ble_backend_screens/scanner_screen.dart';
 import 'package:ble_backend_screens/status_screen.dart';
+import 'package:ble_chess_driver/ble_uuids.dart';
 import 'package:ble_chess_example/round_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
-import 'package:universal_chess_driver/ble_uuids.dart';
 
 void main() {
   Logger.root.level = Level.INFO;
@@ -12,11 +12,11 @@ void main() {
     print(
         '${record.level.name}: ${record.time}: ${record.loggerName}: ${record.message}');
   });
-  runApp(UniversalDriverDemoApp());
+  runApp(BleChessApp());
 }
 
-class UniversalDriverDemoApp extends StatelessWidget {
-  UniversalDriverDemoApp({super.key});
+class BleChessApp extends StatelessWidget {
+  BleChessApp({super.key});
 
   @override
   Widget build(BuildContext context) {

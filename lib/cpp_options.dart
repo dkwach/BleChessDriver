@@ -1,5 +1,5 @@
-import 'package:universal_chess_driver/option.dart';
-import 'package:universal_chess_driver/string_consts.dart';
+import 'package:ble_chess_driver/option.dart';
+import 'package:ble_chess_driver/string_consts.dart';
 
 class CppOptions {
   final Map<String, Option> map = {};

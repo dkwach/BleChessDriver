@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:logging/logging.dart';
-import 'package:universal_chess_driver/string_consts.dart';
-import 'package:universal_chess_driver/utils.dart';
-import 'package:universal_chess_driver/cpp_peripheral_state.dart';
+import 'package:ble_chess_driver/string_consts.dart';
+import 'package:ble_chess_driver/utils.dart';
+import 'package:ble_chess_driver/cpp_peripheral_state.dart';
 
 final logger = Logger('cpp_peripheral');
 

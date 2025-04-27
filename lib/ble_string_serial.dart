@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:ble_backend/ble_serial.dart';
-import 'package:universal_chess_driver/string_serial.dart';
+import 'package:ble_chess_driver/string_serial.dart';
 
 class BleStringSerial extends StringSerial {
   BleStringSerial({required BleSerial bleSerial}) : _bleSerial = bleSerial {

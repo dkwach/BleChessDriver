@@ -1,4 +1,4 @@
-import 'package:universal_chess_driver/string_consts.dart';
+import 'package:ble_chess_driver/string_consts.dart';
 
 class Support {
   final String name;

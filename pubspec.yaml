@@ -1,4 +1,4 @@
-name: universal_chess_driver
+name: ble_chess_driver
 description: A Chessboard Driver written in pure Dart
 version: 0.0.10
 repository: https://github.com/dkwach/BleChessDriver
