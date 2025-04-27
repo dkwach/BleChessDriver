@@ -1,510 +1,257 @@
 import 'dart:async';
 
 import 'package:logging/logging.dart';
-import 'package:universal_chess_driver/central.dart';
-import 'package:universal_chess_driver/peripheral.dart';
-import 'package:universal_chess_driver/string_serial.dart';
-import 'package:universal_chess_driver/utils.dart';
+import 'package:ble_chess_driver/option.dart';
+import 'package:ble_chess_driver/peripheral.dart';
+import 'package:ble_chess_driver/string_serial.dart';
+import 'package:ble_chess_driver/string_consts.dart';
+import 'package:ble_chess_driver/cpp_round.dart';
+import 'package:ble_chess_driver/cpp_options.dart';
+import 'package:ble_chess_driver/cpp_peripheral_state.dart';
+import 'package:ble_chess_driver/cpp_peripheral_states.dart';
 
 final logger = Logger('cpp_peripheral');
 
-class CppPeripheralRound implements PeripheralRound {
-  String? _variant;
-  String? _fen;
-  String? _lastMove;
-  bool? _isVariantSynchronized;
-  bool? _isFenSynchronized;
-  bool? _isMoveRejected;
-
-  @override
-  String? get variant => _variant;
-  @override
-  String? get fen => _fen;
-  @override
-  String? get lastMove => _lastMove;
-  @override
-  bool? get isVariantSynchronized => _isVariantSynchronized;
-  @override
-  bool? get isFenSynchronized => _isFenSynchronized;
-  @override
-  bool? get isMoveRejected => _isMoveRejected;
-
-  set variant(String? variant) {
-    _variant = variant;
-  }
-
-  set fen(String? fen) {
-    _fen = fen;
-  }
-
-  set lastMove(String? lastMove) {
-    _lastMove = lastMove;
-  }
-
-  set isVariantSynchronized(bool? isSynchronized) {
-    _isVariantSynchronized = isSynchronized;
-  }
-
-  set isFenSynchronized(bool? isSynchronized) {
-    _isFenSynchronized = isSynchronized;
-  }
-
-  set isMoveRejected(bool? isRejected) {
-    _isMoveRejected = isRejected;
-  }
-}
-
 class CppPeripheral implements Peripheral {
   CppPeripheral({
-    required Central central,
     required StringSerial stringSerial,
-  })  : _central = central,
-        _serial = stringSerial {
-    _serial.stringStream.listen(onPeripheralCommand);
-    _serial.startNotifications();
-    transitionTo(IterableExchangeState(
-      _central.features.iterator,
-      _features,
-      'feature',
-      IterableExchangeState(
-        _central.variants.iterator,
-        _variants,
-        'variant',
-        InitializedState(),
-      ),
-    ));
+    required List<String> features,
+    required List<String> variants,
+  }) : serial = stringSerial {
+    serial.stringStream.listen(handlePeripheralCommand);
+    serial.startNotifications();
+    final checkVariants = IterableExchangeState(
+      variants.iterator,
+      cppVariants,
+      Command.variant,
+      InitializedState(),
+    );
+    final checkFeatures = IterableExchangeState(
+      features.iterator,
+      cppFeatures,
+      Command.feature,
+      checkVariants,
+    );
+    transitionTo(checkFeatures);
   }
 
-  final Central _central;
-  final StringSerial _serial;
-  final List<String> _features = [];
-  final List<String> _variants = [];
-  final CppPeripheralRound _round = CppPeripheralRound();
-  bool _isInitialized = false;
-  final _fenController = StreamController<String>();
-  final _moveController = StreamController<String>();
-  final _isVariantSynchronizedController = StreamController<bool>();
-  final _isFenSynchronizedController = StreamController<bool>();
-  final _isInitializedController = StreamController<bool>();
-  final _msgController = StreamController<String>();
-  final _errorController = StreamController<String>();
-  late PeripheralState _state;
+  final StringSerial serial;
+  final List<String> cppFeatures = [];
+  final List<String> cppVariants = [];
+  bool isCppInitialized = false;
+  final CppRound cppRound = CppRound();
+  bool areCppOptionsInitialized = false;
+  CppOptions cppOptions = CppOptions();
+  final initializedController = StreamController<void>();
+  final roundInitializedController = StreamController<void>();
+  final roundUpdateController = StreamController<void>();
+  final stateSynchronizeController = StreamController<bool>();
+  final moveController = StreamController<String>();
+  final errController = StreamController<String>();
+  final msgController = StreamController<String>();
+  final undoController = StreamController<String>();
+  final movedController = StreamController<void>();
+  final resignController = StreamController<void>();
+  final drawOfferController = StreamController<void>();
+  final drawOfferAckController = StreamController<bool>();
+  final optionsUpdateController = StreamController<void>();
+  late CppPeripheralState state;
 
   @override
-  List<String> get features => _features;
+  bool isFeatureSupported(String feature) => cppFeatures.contains(feature);
   @override
-  List<String> get variants => _variants;
-  @override
-  PeripheralRound get round => _round;
-  @override
-  bool get isInitialized => _isInitialized;
+  bool isVariantSupported(String variant) => cppVariants.contains(variant);
 
   @override
-  Stream<String> get fenStream => _fenController.stream;
+  bool get isInitialized => isCppInitialized;
   @override
-  Stream<String> get moveStream => _moveController.stream;
+  Round get round => cppRound;
   @override
-  Stream<bool> get isVariantSynchronizedStream =>
-      _isVariantSynchronizedController.stream;
+  bool get areOptionsInitialized => areCppOptionsInitialized;
   @override
-  Stream<bool> get isFenSynchronizedStream =>
-      _isFenSynchronizedController.stream;
-  @override
-  Stream<bool> get isInitializedStream => _isInitializedController.stream;
-  @override
-  Stream<String> get msgStream => _msgController.stream;
-  @override
-  Stream<String> get errorStream => _errorController.stream;
+  List<Option> get options => cppOptions.values;
 
   @override
-  void handleRoundBegin() {
-    _state.onCentralRoundBegin();
+  Stream<void> get initializedStream => initializedController.stream;
+  @override
+  Stream<void> get roundInitializedStream => roundInitializedController.stream;
+  @override
+  Stream<void> get roundUpdateStream => roundUpdateController.stream;
+  @override
+  Stream<bool> get stateSynchronizeStream => stateSynchronizeController.stream;
+  @override
+  Stream<String> get moveStream => moveController.stream;
+  @override
+  Stream<String> get errStream => errController.stream;
+  @override
+  Stream<String> get msgStream => msgController.stream;
+  @override
+  Stream<String> get undoStream => undoController.stream;
+  @override
+  Stream<void> get movedStream => movedController.stream;
+  @override
+  Stream<void> get resignStream => resignController.stream;
+  @override
+  Stream<void> get drawOfferStream => drawOfferController.stream;
+  @override
+  Stream<bool> get drawOfferAckStream => drawOfferAckController.stream;
+  @override
+  Stream<void> get optionsUpdateStream => optionsUpdateController.stream;
+
+  @override
+  Future<void> handleBegin({
+    required String fen,
+    String? variant,
+    String? side,
+    String? lastMove,
+    String? check,
+    String? time,
+  }) async {
+    await state.handleCentralBegin(
+      fen: fen,
+      variant: variant,
+      side: side,
+      lastMove: lastMove,
+      check: check,
+      time: time,
+    );
   }
 
   @override
-  void handleRoundChange() {
-    _state.onCentralRoundChange();
+  Future<void> handleMove({
+    required String move,
+    String? check,
+    String? time,
+  }) async {
+    await state.handleCentralMove(
+      move: move,
+      check: check,
+      time: time,
+    );
   }
 
   @override
-  void handleMoveRejection() {
-    _state.onPeripheralMoveRejection();
+  Future<void> handleReject() async {
+    await state.handleCentralReject();
   }
 
-  void onPeripheralCommand(String cmd) {
+  @override
+  Future<void> handleEnd({
+    String? reason,
+    String? drawReason,
+    String? variantReason,
+    String? score,
+  }) async {
+    await state.handleCentralEnd();
+  }
+
+  @override
+  Future<void> handleErr({
+    required String err,
+  }) async {
+    await state.handleCentralErr(
+      err: err,
+    );
+  }
+
+  Future<void> handleMsg({
+    required String msg,
+  }) async {
+    await state.handleCentralMsg(
+      msg: msg,
+    );
+  }
+
+  @override
+  Future<void> handleUndo({
+    required String move,
+    String? lastMove,
+    String? check,
+    String? time,
+  }) async {
+    await state.handleCentralUndo(
+      move: move,
+      lastMove: lastMove,
+      check: check,
+      time: time,
+    );
+  }
+
+  @override
+  Future<void> handleDrawOffer() async {
+    await state.handleCentralDrawOffer();
+  }
+
+  @override
+  Future<void> handleGetState() async {
+    await state.handleCentralGetState();
+  }
+
+  @override
+  Future<void> handleSetState() async {
+    await state.handleCentralSetState();
+  }
+
+  @override
+  Future<void> handleState({
+    required String fen,
+  }) async {
+    await state.handleCentralState(
+      fen: fen,
+    );
+  }
+
+  @override
+  Future<void> handleOptionsBegin() async {
+    await state.handleOptionsBegin();
+  }
+
+  @override
+  Future<void> handleOptionsReset() async {
+    await state.handleOptionsReset();
+  }
+
+  @override
+  Future<void> handleSetOption({
+    required String name,
+    required String value,
+  }) async {
+    await state.handleSetOption(
+      name: name,
+      value: value,
+    );
+  }
+
+  Future<void> handlePeripheralCommand(String cmd) async {
     logger.info('Peripheral: $cmd');
-    _state.onPeripheralCommand(cmd);
+    await state.handlePeripheralCommand(cmd);
   }
 
-  void sendCommandToPrtipheral(String cmd) async {
+  Future<void> sendCommandToPrtipheral(String cmd) async {
     logger.info('Central: $cmd');
-    await _serial.send(str: cmd);
+    await serial.send(str: cmd);
   }
 
-  void transitionTo(PeripheralState nextState) {
+  void transitionTo(CppPeripheralState nextState) {
     logger.info('Transition to: ${nextState.runtimeType}');
-    _state = nextState;
-    _state.context = this;
-    _state.onEnter();
+    state = nextState;
+    state.context = this;
+    state.onEnter();
   }
 
   void dispose() {
-    _fenController.close();
-    _moveController.close();
-    _isVariantSynchronizedController.close();
-    _isFenSynchronizedController.close();
-    _isInitializedController.close();
-    _msgController.close();
-    _errorController.close();
-  }
-}
-
-class PeripheralState {
-  late CppPeripheral _context;
-
-  void set context(CppPeripheral context) {
-    _context = context;
-  }
-
-  Central get central => _context._central;
-  CentralRound get centralRound => central.round;
-  CppPeripheralRound get peripheralRound => _context._round;
-
-  bool isFeatureSupported(String feature) {
-    return _context.features.contains(feature);
-  }
-
-  void sendFenToCentral(String fen) {
-    _context._round.fen = fen;
-    _context._fenController.add(fen);
-  }
-
-  void sendMoveToCentral(String move) {
-    _context._round.lastMove = move;
-    _context._moveController.add(move);
-  }
-
-  void sendIsVariantSynchronizedToCentral(bool isSynchronized) {
-    _context._round.isVariantSynchronized = isSynchronized;
-    _context._isVariantSynchronizedController.add(isSynchronized);
-  }
-
-  void sendIsFenSynchronizedToCentral(bool isSynchronized) {
-    _context._round.isFenSynchronized = isSynchronized;
-    _context._isFenSynchronizedController.add(isSynchronized);
-  }
-
-  void sendIsMoveRejectedToCentral(bool isRejected) {
-    _context._round.isMoveRejected = isRejected;
-  }
-
-  void sendIsInitializedToCentral(bool isInitialized) {
-    _context._isInitialized = isInitialized;
-    _context._isInitializedController.add(isInitialized);
-  }
-
-  void sendMsgToCentral(String msg) {
-    _context._msgController.add(msg);
-  }
-
-  void sendErrorToCentral(String err) {
-    _context._errorController.add(err);
-    logger.warning(err);
-  }
-
-  void sendCommandToPrtipheral(String cmd) {
-    _context.sendCommandToPrtipheral(cmd);
-  }
-
-  void transitionTo(PeripheralState nextState) {
-    _context.transitionTo(nextState);
-  }
-
-  void onEnter() {}
-
-  void onCentralRoundBegin() {
-    sendErrorToCentral('Unexpected: $runtimeType: round begin');
-  }
-
-  void onCentralRoundChange() {
-    sendErrorToCentral('Unexpected: $runtimeType: round change');
-  }
-
-  void onPeripheralMoveRejection() {
-    sendErrorToCentral('Unexpected: $runtimeType: rejection');
-  }
-
-  void onPeripheralCommand(String cmd) {
-    if (cmd.startsWith('msg') && isFeatureSupported('msg')) {
-      sendMsgToCentral(getCommandParams(cmd));
-      sendCommandToPrtipheral('ok');
-      return;
-    }
-
-    if (cmd != 'nok') sendCommandToPrtipheral('nok');
-    sendErrorToCentral('Unexpected: $runtimeType: $cmd');
-  }
-}
-
-class IterableExchangeState extends PeripheralState {
-  IterableExchangeState(
-    this.iter,
-    this.result,
-    this.cmdName,
-    this.nextState,
-  );
-
-  final Iterator<String> iter;
-  final List<String> result;
-  final String cmdName;
-  final PeripheralState nextState;
-
-  @override
-  void onEnter() {
-    moveIterator();
-  }
-
-  void moveIterator() {
-    if (iter.moveNext())
-      sendCommandToPrtipheral('$cmdName ${iter.current}');
-    else
-      transitionTo(nextState);
-  }
-
-  @override
-  void onPeripheralCommand(String cmd) {
-    if (cmd == 'ok') {
-      logger.info('Peripheral ${cmdName} ${iter.current} supported');
-      result.add(iter.current);
-    } else if (cmd == 'nok') {
-      logger.info('Peripheral ${cmdName} ${iter.current} unsupported');
-    } else
-      super.onPeripheralCommand(cmd);
-
-    moveIterator();
-  }
-}
-
-class InitializedState extends PeripheralState {
-  @override
-  void onEnter() {
-    transitionTo(IdleState());
-    sendIsInitializedToCentral(true);
-  }
-}
-
-class IdleState extends PeripheralState {
-  @override
-  void onCentralRoundBegin() {
-    transitionTo(SynchronizeVariantState());
-  }
-
-  @override
-  void onCentralRoundChange() {}
-}
-
-class SynchronizeVariantState extends PeripheralState {
-  @override
-  void onEnter() {
-    if (centralRound.variant == null ||
-        peripheralRound.variant == centralRound.variant)
-      transitionTo(SynchronizeFenState());
-    else
-      sendCommandToPrtipheral('variant ${centralRound.variant}');
-  }
-
-  @override
-  void onPeripheralCommand(String cmd) {
-    if (cmd == 'ok') {
-      peripheralRound.variant = centralRound.variant;
-      sendIsVariantSynchronizedToCentral(true);
-      transitionTo(SynchronizeFenState());
-    } else if (cmd == 'nok') {
-      peripheralRound.variant = null;
-      sendIsVariantSynchronizedToCentral(false);
-      transitionTo(IdleState());
-    } else
-      super.onPeripheralCommand(cmd);
-  }
-}
-
-class SynchronizeFenState extends PeripheralState {
-  @override
-  void onEnter() {
-    if (centralRound.fen == null) {
-      sendErrorToCentral('Central begin round without fen');
-      transitionTo(IdleState());
-    }
-
-    sendCommandToPrtipheral('fen ${centralRound.fen}');
-  }
-
-  @override
-  void onPeripheralCommand(String cmd) {
-    if (cmd == 'ok') {
-      transitionTo(SynchronizeLastMoveState());
-    } else if (cmd == 'nok') {
-      transitionTo(UnsynchronisedState());
-    } else
-      super.onPeripheralCommand(cmd);
-  }
-}
-
-class SynchronizeLastMoveState extends PeripheralState {
-  @override
-  void onEnter() {
-    if (isFeatureSupported('last_move') && centralRound.lastMove != null)
-      sendCommandToPrtipheral('last_move ${centralRound.lastMove}');
-    else {
-      transitionTo(SynchronisedState());
-      sendIsFenSynchronizedToCentral(true);
-    }
-  }
-
-  @override
-  void onPeripheralCommand(String cmd) {
-    if (cmd == 'ok') {
-      transitionTo(SynchronisedState());
-      sendIsFenSynchronizedToCentral(true);
-    } else
-      super.onPeripheralCommand(cmd);
-  }
-}
-
-class SynchronisedState extends PeripheralState {
-  @override
-  void onCentralRoundBegin() {
-    transitionTo(SynchronizeVariantState());
-  }
-
-  @override
-  void onCentralRoundChange() {
-    transitionTo(CentralMoveState());
-  }
-
-  @override
-  void onPeripheralCommand(String cmd) {
-    if (cmd.startsWith('move')) {
-      transitionTo(PeripheralMoveState());
-      sendMoveToCentral(getCommandParams(cmd));
-    } else if (cmd.startsWith('fen')) {
-      final peripheralFen = getCommandParams(cmd);
-      final centralFen = centralRound.fen;
-      peripheralRound.fen = peripheralFen;
-      if (centralFen != null && areFensSame(peripheralFen, centralFen)) {
-        sendCommandToPrtipheral('ok');
-      } else {
-        sendCommandToPrtipheral('nok');
-        transitionTo(UnsynchronisedState());
-      }
-    } else
-      super.onPeripheralCommand(cmd);
-  }
-}
-
-class UnsynchronisedState extends PeripheralState {
-  @override
-  void onEnter() {
-    sendIsFenSynchronizedToCentral(false);
-  }
-
-  @override
-  void onCentralRoundBegin() {
-    transitionTo(SynchronizeVariantState());
-  }
-
-  @override
-  void onCentralRoundChange() {
-    transitionTo(SynchronizeFenState());
-  }
-
-  @override
-  void onPeripheralCommand(String cmd) {
-    if (cmd.startsWith('fen')) {
-      final peripheralFen = getCommandParams(cmd);
-      final centralFen = centralRound.fen;
-      sendFenToCentral(peripheralFen);
-      if (centralFen != null && areFensSame(peripheralFen, centralFen)) {
-        sendCommandToPrtipheral('ok');
-        transitionTo(SynchronizeLastMoveState());
-      } else {
-        sendCommandToPrtipheral('nok');
-      }
-    } else
-      super.onPeripheralCommand(cmd);
-  }
-}
-
-class PeripheralMoveState extends PeripheralState {
-  @override
-  void onCentralRoundBegin() {
-    sendCommandToPrtipheral('nok');
-    transitionTo(SynchronizeVariantState());
-  }
-
-  @override
-  onCentralRoundChange() {
-    final centralMove = centralRound.lastMove;
-    final peripheralMove = peripheralRound.lastMove;
-    if (centralMove == null) {
-      sendErrorToCentral('Central change round without move');
-      return;
-    }
-
-    if (peripheralMove == centralMove) {
-      sendCommandToPrtipheral('ok');
-      transitionTo(SynchronisedState());
-      return;
-    }
-
-    if (hasUciPromotion(centralMove) && !hasUciPromotion(peripheralMove!)) {
-      transitionTo(PeripheralMovePromotionState());
-      return;
-    }
-
-    sendErrorToCentral('Unexpected: $runtimeType: central move');
-    transitionTo(IdleState());
-  }
-
-  @override
-  void onPeripheralMoveRejection() {
-    sendCommandToPrtipheral('nok');
-    transitionTo(SynchronisedState());
-  }
-}
-
-class PeripheralMovePromotionState extends PeripheralState {
-  @override
-  void onEnter() {
-    sendCommandToPrtipheral('promote ${centralRound.lastMove}');
-  }
-
-  @override
-  void onPeripheralCommand(String cmd) {
-    if (cmd == 'ok') {
-      transitionTo(SynchronisedState());
-    } else
-      super.onPeripheralCommand(cmd);
-  }
-}
-
-class CentralMoveState extends PeripheralState {
-  @override
-  void onEnter() {
-    final centralMove = centralRound.lastMove;
-    if (centralMove != null) {
-      sendCommandToPrtipheral('move ${centralMove}');
-    } else {
-      sendErrorToCentral('Central change round without move');
-      transitionTo(SynchronisedState());
-    }
-  }
-
-  @override
-  void onPeripheralCommand(String cmd) {
-    if (cmd == 'ok') {
-      transitionTo(SynchronisedState());
-    } else
-      super.onPeripheralCommand(cmd);
+    initializedController.close();
+    roundInitializedController.close();
+    roundUpdateController.close();
+    stateSynchronizeController.close();
+    moveController.close();
+    errController.close();
+    msgController.close();
+    undoController.close();
+    movedController.close();
+    resignController.close();
+    drawOfferController.close();
+    drawOfferAckController.close();
+    optionsUpdateController.close();
   }
 }

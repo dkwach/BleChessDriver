@@ -3,16 +3,17 @@ import 'dart:async';
 import 'package:ble_backend/ble_connector.dart';
 import 'package:ble_backend/ble_peripheral.dart';
 import 'package:ble_backend_screens/ui/ui_consts.dart';
-import 'package:ble_chess_example/app_central.dart';
+import 'package:ble_chess_driver/ble_consts.dart';
+import 'package:ble_chess_driver/ble_string_serial.dart';
+import 'package:ble_chess_driver/ble_uuids.dart';
+import 'package:ble_chess_driver/cpp_peripheral.dart';
+import 'package:ble_chess_driver/dummy_peripheral.dart';
+import 'package:ble_chess_driver/peripheral.dart';
+import 'package:ble_chess_driver/string_consts.dart';
+import 'package:ble_chess_example/options_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:universal_chess_driver/ble_consts.dart';
-import 'package:universal_chess_driver/ble_string_serial.dart';
-import 'package:universal_chess_driver/ble_uuids.dart';
-import 'package:universal_chess_driver/central.dart';
-import 'package:universal_chess_driver/cpp_peripheral.dart';
-import 'package:universal_chess_driver/peripheral.dart';
 
 class RoundScreen extends StatefulWidget {
   RoundScreen({
@@ -25,28 +26,27 @@ class RoundScreen extends StatefulWidget {
   final BlePeripheral blePeripheral;
 
   @override
-  State<RoundScreen> createState() => RoundScreenState(
-        chessController: ChessBoardController(),
-      );
+  State<RoundScreen> createState() => RoundScreenState();
 }
 
 class RoundScreenState extends State<RoundScreen> {
-  RoundScreenState({
-    required ChessBoardController chessController,
-  })  : chessController = chessController,
-        central = AppCentral(chessController: chessController);
-  ChessBoardController chessController;
-  Central central;
-  Peripheral? peripheral;
   StreamSubscription? _subscription;
+  ChessBoardController chessController = ChessBoardController();
+  Peripheral peripheral = DummyPeripheral();
+  bool isAutocompleteOngoing = false;
 
   BlePeripheral get blePeripheral => widget.blePeripheral;
   BleConnector get bleConnector => widget.bleConnector;
-  BleConnectorStatus get connectionStatus => bleConnector.state;
+  Chess get game => chessController.game;
 
   void _beginNewRound() {
     chessController.resetBoard();
-    peripheral?.handleRoundBegin();
+    peripheral.handleBegin(
+      fen: chessController.getFen(),
+      variant: Variant.standard,
+      side: Side.both,
+      lastMove: lastMove,
+    );
   }
 
   void _showMessage(String msg) {
@@ -66,29 +66,78 @@ class RoundScreenState extends State<RoundScreen> {
     );
   }
 
-  void _handlePeripheralIsInitialized(bool isInitialized) {
+  void _handlePeripheralInitialized(_) {
     setState(() {
-      if (isInitialized) _beginNewRound();
+      _beginNewRound();
     });
   }
 
-  void _handlePeripheralFen(String fen) {}
+  void _handlePeripheralRoundInitialized(_) {
+    setState(() {
+      isAutocompleteOngoing = false;
+      if (!peripheral.round.isVariantSupported) {
+        _showMessage('Unsupported variant');
+      }
+    });
+  }
+
+  void _handlePeripheralRoundUpdate(_) {
+    setState(() {
+      isAutocompleteOngoing = false;
+    });
+  }
+
+  void _handlePeripheralStateSynchronize(bool isSynchronized) {
+    _showMessage(isSynchronized ? 'Synchronized' : 'Unsynchronized');
+  }
+
+  void _handleCentralMove() {
+    peripheral.handleMove(move: lastMove!);
+    _handleCentralEnd();
+  }
+
+  void _handleCentralEnd() {
+    if (game.in_checkmate) {
+      _showMessage('Checkmate');
+      peripheral.handleEnd(reason: EndReason.checkmate);
+    } else if (game.in_stalemate) {
+      _showMessage('Stalemate');
+      peripheral.handleEnd(
+        reason: EndReason.draw,
+        drawReason: DrawReason.stalemate,
+      );
+    } else if (game.in_threefold_repetition) {
+      _showMessage('Threefold repetition');
+      peripheral.handleEnd(
+        reason: EndReason.draw,
+        drawReason: DrawReason.threefoldRepetition,
+      );
+    } else if (game.insufficient_material) {
+      _showMessage('Insufficient material');
+      peripheral.handleEnd(
+        reason: EndReason.draw,
+        drawReason: DrawReason.insufficientMaterial,
+      );
+    } else if (game.in_draw) {
+      _showMessage('Draw');
+      peripheral.handleEnd(reason: EndReason.draw);
+    }
+  }
 
   void _handlePeripheralMove(String uci) {
-    if (chessController.makeMoveUci(uci: uci))
-      peripheral?.handleRoundChange();
-    else {
-      peripheral?.handleMoveRejection();
+    if (chessController.makeMoveUci(uci: uci)) {
+      _handleCentralMove();
+    } else {
+      peripheral.handleReject();
       _showMessage('Rejected');
     }
   }
 
-  void _handlePeripheralIsVariantSynchronized(bool isSynchronized) {
-    if (!isSynchronized) _showMessage('Unsupported variant');
-  }
-
-  void _handlePeripheralIsFenSynchronized(bool isSynchronized) {
-    _showMessage(isSynchronized ? 'Synchronized' : 'Unsynchronized');
+  void _handleAutocomplete() {
+    setState(() {
+      isAutocompleteOngoing = true;
+      peripheral.handleSetState();
+    });
   }
 
   Future<void> _initPeripheral() async {
@@ -102,26 +151,42 @@ class RoundScreenState extends State<RoundScreen> {
     }
 
     final serial = BleStringSerial(
-        bleSerial: bleConnector.createSerial(
-            serviceId: serviceUuid,
-            rxCharacteristicId: characteristicUuidRx,
-            txCharacteristicId: characteristicUuidTx));
-    peripheral = CppPeripheral(central: central, stringSerial: serial);
-    peripheral?.fenStream.listen(_handlePeripheralFen);
-    peripheral?.moveStream.listen(_handlePeripheralMove);
-    peripheral?.isVariantSynchronizedStream
-        .listen(_handlePeripheralIsVariantSynchronized);
-    peripheral?.isFenSynchronizedStream
-        .listen(_handlePeripheralIsFenSynchronized);
-    peripheral?.isInitializedStream.listen(_handlePeripheralIsInitialized);
-    peripheral?.msgStream.listen(_showMessage);
-    peripheral?.errorStream.listen(_showError);
+      bleSerial: bleConnector.createSerial(
+        serviceId: serviceUuid,
+        rxCharacteristicId: characteristicUuidRx,
+        txCharacteristicId: characteristicUuidTx,
+      ),
+    );
+    final features = [
+      Feature.msg,
+      Feature.lastMove,
+      Feature.side,
+      Feature.setState,
+      Feature.stateStream,
+      Feature.drawReason,
+      Feature.option,
+    ];
+    final variants = [
+      Variant.standard,
+    ];
+    peripheral = CppPeripheral(
+      stringSerial: serial,
+      features: features,
+      variants: variants,
+    );
+    peripheral.initializedStream.listen(_handlePeripheralInitialized);
+    peripheral.roundInitializedStream.listen(_handlePeripheralRoundInitialized);
+    peripheral.roundUpdateStream.listen(_handlePeripheralRoundUpdate);
+    peripheral.stateSynchronizeStream.listen(_handlePeripheralStateSynchronize);
+    peripheral.moveStream.listen(_handlePeripheralMove);
+    peripheral.errStream.listen(_showError);
+    peripheral.msgStream.listen(_showMessage);
   }
 
   void _onConnectionStateChanged(BleConnectorStatus state) {
     setState(() {
       if (state == BleConnectorStatus.disconnected) {
-        peripheral = null;
+        peripheral = DummyPeripheral();
       } else if (state == BleConnectorStatus.connected) {
         _initPeripheral();
       }
@@ -145,28 +210,48 @@ class RoundScreenState extends State<RoundScreen> {
     super.dispose();
   }
 
-  Widget _buildChessBoardWidget() => ChessBoard(
-        controller: chessController,
-        boardColor: BoardColor.darkBrown,
-        boardOrientation: PlayerColor.white,
-        onMove: () {
-          peripheral?.handleRoundChange();
-        },
-      );
+  String? get lastMove {
+    final history = game.history;
+    if (history.isEmpty) return null;
+    final lastMove = history.last.move;
+    String uci = lastMove.fromAlgebraic + lastMove.toAlgebraic;
+    final promotion = lastMove.promotion;
+    if (promotion != null) uci += promotion.name;
+    return uci;
+  }
 
-  Widget _buildNewRoundButton() => SizedBox(
+  Widget _buildChessBoardWidget() => ChessBoard(
+      controller: chessController,
+      boardColor: BoardColor.darkBrown,
+      boardOrientation: PlayerColor.white,
+      onMove: _handleCentralMove);
+
+  Widget _buildNewRoundButton() => FilledButton.icon(
+      icon: const Icon(Icons.refresh_rounded),
+      label: Text('New Round'),
+      onPressed: peripheral.isInitialized ? _beginNewRound : null);
+
+  Widget _buildAutocompleteButton() => FilledButton.icon(
+      icon: const Icon(Icons.auto_awesome_rounded),
+      label: Text('Autocomplete'),
+      onPressed: peripheral.round.isStateSetible && !isAutocompleteOngoing
+          ? _handleAutocomplete
+          : null);
+
+  Widget _buildControlButtons() => SizedBox(
         height: buttonHeight,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              child: FilledButton.icon(
-                icon: const Icon(Icons.refresh_rounded),
-                label: Text('New round'),
-                onPressed:
-                    peripheral?.isInitialized == true ? _beginNewRound : null,
-              ),
+              child: _buildNewRoundButton(),
             ),
+            if (peripheral.isFeatureSupported(Feature.setState))
+              const SizedBox(width: buttonsSplitter),
+            if (peripheral.isFeatureSupported(Feature.setState))
+              Expanded(
+                child: _buildAutocompleteButton(),
+              ),
           ],
         ),
       );
@@ -188,7 +273,7 @@ class RoundScreenState extends State<RoundScreen> {
               padding: EdgeInsets.symmetric(
                 horizontal: screenPadding,
               ),
-              child: _buildNewRoundButton(),
+              child: _buildControlButtons(),
             ),
           ],
         ),
@@ -207,7 +292,7 @@ class RoundScreenState extends State<RoundScreen> {
             Expanded(
               child: Align(
                 alignment: Alignment.bottomCenter,
-                child: _buildNewRoundButton(),
+                child: _buildControlButtons(),
               ),
             ),
           ],
@@ -220,6 +305,23 @@ class RoundScreenState extends State<RoundScreen> {
         appBar: AppBar(
           title: Text(blePeripheral.name ?? ''),
           centerTitle: true,
+          actions: [
+            if (peripheral.isFeatureSupported(Feature.option))
+              IconButton(
+                icon: const Icon(Icons.settings_rounded),
+                onPressed: peripheral.isInitialized
+                    ? () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                OptionsScreen(peripheral: peripheral),
+                          ),
+                        );
+                      }
+                    : null,
+              ),
+          ],
         ),
         body: SafeArea(
           child: OrientationBuilder(

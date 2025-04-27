@@ -1,4 +1,4 @@
-name: universal_chess_driver
+name: ble_chess_driver
 description: A Chessboard Driver written in pure Dart
 version: 0.0.10
 repository: https://github.com/dkwach/BleChessDriver
@@ -9,5 +9,5 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  logging: ^1.3.0
   ble_backend: ^1.3.0
-  ble_backend_factory: ^1.3.0
