@@ -1,18 +1,64 @@
-# BleChessDriver
+# BLE Chess Driver
 
-The BleChessDriver flutter package, which can be used in WhitePawn.
+Play chess on external device over BLE using [CPP](https://github.com/vovagorodok/chess_peripheral_protocol) protocol
 
+## Usage
+Create `CppPeripheral` on connected and begin round only after initialized:
+```dart
+final serial = BleStringSerial(
+    bleSerial: bleConnector.createSerial(
+    serviceId: serviceUuid,
+    rxCharacteristicId: characteristicUuidRx,
+    txCharacteristicId: characteristicUuidTx));
+final peripheral = CppPeripheral(
+    stringSerial: serial,
+    features: [],
+    variants: [Variant.standard]);
 
-## WhitePawn
-Implementation based on 
-https://github.com/mono424/chesslinkdriver
+peripheral.initializedStream.listen((_) {
+    print('Initialized');
+    peripheral.handleBegin(fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+});
+peripheral.roundInitializedStream.listen((_) {
+    final round = peripheral.round;
+    print('Round ${round.isSynchronized ? 'synchronized' : 'unsynchronized'} ${round.fen}');
+    peripheral.handleMove(move: 'a2a3');
+});
+peripheral.roundUpdateStream.listen((_) {
+    final round = peripheral.round;
+    print('Round ${round.isSynchronized ? 'synchronized' : 'unsynchronized'} ${round.fen}');
+});
+peripheral.moveStream.listen((move) {
+    print('Move ${move}');
+    isValid(move) ? peripheral.handleMove(move: move) : peripheral.handleReject();
+});
+```
 
+`BleSerial` can be created by own (see [ble_backends](https://github.com/vovagorodok/ble_backends/tree/main/packages)). Example for `flutter_reactive_ble` library:
+```dart
+final bleSerial = BleSerial(
+    characteristicRx: FlutterReactiveBleCharacteristic(
+        backend: FlutterReactiveBle()
+        deviceId: deviceId,
+        serviceId: Uuid.parse(serviceUuid),
+        characteristicId: Uuid.parse(characteristicUuidRx)),
+    characteristicTx: FlutterReactiveBleCharacteristic(
+        backend: FlutterReactiveBle()
+        deviceId: deviceId,
+        serviceId: Uuid.parse(serviceUuid),
+        characteristicId: Uuid.parse(characteristicUuidTx)),
+);
+```
 
-# Universal Protocol
-Driver is implementing free and open protocol for electronic chess devices. See https://github.com/lichess-org/lichobile/pull/2101 for lichobile implementation in open pull request.
-
-In current version open protocol is based on CECP widely used as a protocol between chess engine and and chess GUI  
-
-
-For short description please see:
-https://github.com/vovagorodok/lichobile/blob/bluetooth/src/externalDevice/README.md
+Call feature specific methods only if feature is supported by peripheral:
+```dart
+if (peripheral.isFeatureSupported(Feature.undo)) {
+    peripheral.handleUndo(move: move);
+}
+if (peripheral.isFeatureSupported(Feature.drawOffer)) {
+    peripheral.handleDrawOffer();
+}
+if (peripheral.isFeatureSupported(Feature.setState) && peripheral.round.isStateSetible) {
+    peripheral.handleSetState();
+}
+```
