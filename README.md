@@ -3,7 +3,7 @@
 Play chess on external device over BLE using [CPP](https://github.com/vovagorodok/chess_peripheral_protocol) protocol
 
 ## Usage
-Create `CppPeripheral` on connected and begin round only after initialized:
+Create `CppPeripheral` on peripheral connected and begin round only after peripheral initialized:
 ```dart
 final serial = BleStringSerial(
     bleSerial: bleConnector.createSerial(
