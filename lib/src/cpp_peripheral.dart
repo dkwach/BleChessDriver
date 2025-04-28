@@ -1,14 +1,14 @@
 import 'dart:async';
 
 import 'package:logging/logging.dart';
-import 'package:ble_chess_driver/option.dart';
-import 'package:ble_chess_driver/peripheral.dart';
-import 'package:ble_chess_driver/string_serial.dart';
-import 'package:ble_chess_driver/string_consts.dart';
-import 'package:ble_chess_driver/cpp_round.dart';
-import 'package:ble_chess_driver/cpp_options.dart';
-import 'package:ble_chess_driver/cpp_peripheral_state.dart';
-import 'package:ble_chess_driver/cpp_peripheral_states.dart';
+import './option.dart';
+import './peripheral.dart';
+import './string_serial.dart';
+import './string_consts.dart';
+import './cpp_round.dart';
+import './cpp_options.dart';
+import './cpp_peripheral_state.dart';
+import './cpp_peripheral_states.dart';
 
 final logger = Logger('cpp_peripheral');
 

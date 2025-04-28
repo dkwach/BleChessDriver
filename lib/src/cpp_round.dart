@@ -1,4 +1,4 @@
-import 'package:ble_chess_driver/peripheral.dart';
+import './peripheral.dart';
 
 class CppRound implements Round {
   bool _isVariantSupported = false;

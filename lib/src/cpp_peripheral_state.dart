@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:ble_chess_driver/string_consts.dart';
-import 'package:ble_chess_driver/cpp_round.dart';
-import 'package:ble_chess_driver/cpp_peripheral.dart';
+import './string_consts.dart';
+import './cpp_round.dart';
+import './cpp_peripheral.dart';
 
 class CppPeripheralState {
   late CppPeripheral context;
