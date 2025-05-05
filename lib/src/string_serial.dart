@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:ble_chess_driver/string_notifier.dart';
+import './string_notifier.dart';
 
 abstract class StringSerial extends StringNotifier {
   Future<void> send({required String str});

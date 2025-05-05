@@ -1,7 +1,6 @@
 import 'dart:async';
 
-import 'package:ble_chess_driver/option.dart';
-import 'package:ble_chess_driver/peripheral.dart';
+import 'package:ble_chess_driver/chess_driver.dart';
 import 'package:flutter/material.dart';
 
 class OptionsScreen extends StatefulWidget {

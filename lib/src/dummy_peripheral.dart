@@ -1,5 +1,5 @@
-import 'package:ble_chess_driver/option.dart';
-import 'package:ble_chess_driver/peripheral.dart';
+import './option.dart';
+import './peripheral.dart';
 
 class DummyRound implements Round {
   @override

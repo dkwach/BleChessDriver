@@ -1,4 +1,4 @@
-import 'package:ble_chess_driver/option.dart';
+import './option.dart';
 
 abstract class Round {
   bool get isVariantSupported;

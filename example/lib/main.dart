@@ -1,7 +1,7 @@
 import 'package:ble_backend_factory/ble_central.dart';
 import 'package:ble_backend_screens/scanner_screen.dart';
 import 'package:ble_backend_screens/status_screen.dart';
-import 'package:ble_chess_driver/ble_uuids.dart';
+import 'package:ble_chess_driver/ble_chess_driver.dart';
 import 'package:ble_chess_example/round_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
