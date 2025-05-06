@@ -1,8 +1,8 @@
 import 'package:ble_backend_factory/ble_central.dart';
 import 'package:ble_backend_screens/scanner_screen.dart';
 import 'package:ble_backend_screens/status_screen.dart';
-import 'package:ble_chess_driver/ble_chess_driver.dart';
 import 'package:ble_chess_example/round_screen.dart';
+import 'package:ble_chess_peripheral_driver/ble_chess_peripheral_driver.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 
@@ -10,7 +10,8 @@ void main() {
   Logger.root.level = Level.INFO;
   Logger.root.onRecord.listen((record) {
     print(
-        '${record.level.name}: ${record.time}: ${record.loggerName}: ${record.message}');
+      '${record.level.name}: ${record.time}: ${record.loggerName}: ${record.message}',
+    );
   });
   runApp(BleChessApp());
 }
@@ -37,13 +38,15 @@ class BleChessApp extends StatelessWidget {
         ),
       ),
       home: ScannerScreen(
-          bleCentral: bleCentral,
-          bleScanner: bleCentral.createScanner(serviceIds: [serviceUuid]),
-          createStatusScreen: (bleCentral) =>
-              StatusScreen(bleCentral: bleCentral),
-          createPeripheralScreen: (blePeripheral) => RoundScreen(
-              bleConnector: blePeripheral.createConnector(),
-              blePeripheral: blePeripheral)),
+        bleCentral: bleCentral,
+        bleScanner: bleCentral.createScanner(serviceIds: [serviceUuid]),
+        createStatusScreen: (bleCentral) =>
+            StatusScreen(bleCentral: bleCentral),
+        createPeripheralScreen: (blePeripheral) => RoundScreen(
+          bleConnector: blePeripheral.createConnector(),
+          blePeripheral: blePeripheral,
+        ),
+      ),
       debugShowCheckedModeBanner: false,
     );
   }

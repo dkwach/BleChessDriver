@@ -1,13 +1,10 @@
 import 'dart:async';
 
-import 'package:ble_chess_driver/chess_driver.dart';
+import 'package:ble_chess_peripheral_driver/chess_peripheral_driver.dart';
 import 'package:flutter/material.dart';
 
 class OptionsScreen extends StatefulWidget {
-  const OptionsScreen({
-    required this.peripheral,
-    super.key,
-  });
+  const OptionsScreen({required this.peripheral, super.key});
 
   final Peripheral peripheral;
 
@@ -45,111 +42,114 @@ class OptionsScreenState extends State<OptionsScreen> {
       .join(' ');
 
   Widget _createTitle(Option option) => Text(
-        _convertToReadable(option.name),
-        style: const TextStyle(fontWeight: FontWeight.bold),
-      );
+    _convertToReadable(option.name),
+    style: const TextStyle(fontWeight: FontWeight.bold),
+  );
 
   Widget _createBoolOption(BoolOption option) => ListTile(
-        title: _createTitle(option),
-        trailing: Switch(
-          value: option.value,
-          onChanged: (bool value) {
-            setState(() {
-              option.value = value;
-              peripheral.handleSetOption(
-                name: option.name,
-                value: option.valueString,
-              );
-            });
-          },
-        ),
-      );
+    title: _createTitle(option),
+    trailing: Switch(
+      value: option.value,
+      onChanged: (bool value) {
+        setState(() {
+          option.value = value;
+          peripheral.handleSetOption(
+            name: option.name,
+            value: option.valueString,
+          );
+        });
+      },
+    ),
+  );
 
   Widget _createEnumOption(EnumOption option) => ListTile(
-        title: _createTitle(option),
-        trailing: DropdownMenu<String>(
-          initialSelection: option.value,
-          dropdownMenuEntries: option.enumValues.map((String value) {
+    title: _createTitle(option),
+    trailing: DropdownMenu<String>(
+      initialSelection: option.value,
+      dropdownMenuEntries:
+          option.enumValues.map((String value) {
             return DropdownMenuEntry<String>(
               value: value,
               label: _convertToReadable(value),
             );
           }).toList(),
-          onSelected: (String? value) {
-            setState(() {
-              option.value = value!;
-              peripheral.handleSetOption(
-                name: option.name,
-                value: option.valueString,
-              );
-            });
-          },
-        ),
-      );
+      onSelected: (String? value) {
+        setState(() {
+          option.value = value!;
+          peripheral.handleSetOption(
+            name: option.name,
+            value: option.valueString,
+          );
+        });
+      },
+    ),
+  );
 
   Widget _createStrOption(StrOption option) => ListTile(
-        title: _createTitle(option),
-        subtitle: TextFormField(
-          controller: TextEditingController(text: option.value),
-          decoration: InputDecoration(
-            hintText: 'Enter a value',
-            border: OutlineInputBorder(),
-          ),
-          onFieldSubmitted: (String value) {
-            setState(() {
-              option.value = value;
-              peripheral.handleSetOption(
-                name: option.name,
-                value: option.valueString,
-              );
-            });
-          },
-        ),
-      );
+    title: _createTitle(option),
+    subtitle: TextFormField(
+      controller: TextEditingController(text: option.value),
+      decoration: InputDecoration(
+        hintText: 'Enter a value',
+        border: OutlineInputBorder(),
+      ),
+      onFieldSubmitted: (String value) {
+        setState(() {
+          option.value = value;
+          peripheral.handleSetOption(
+            name: option.name,
+            value: option.valueString,
+          );
+        });
+      },
+    ),
+  );
 
   Widget _createIntOption(IntOption option) => ListTile(
-        title: _createTitle(option),
-        subtitle: Slider(
-          value: option.value.toDouble(),
-          min: option.min.toDouble(),
-          max: option.max.toDouble(),
-          divisions: option.step != null
+    title: _createTitle(option),
+    subtitle: Slider(
+      value: option.value.toDouble(),
+      min: option.min.toDouble(),
+      max: option.max.toDouble(),
+      divisions:
+          option.step != null
               ? ((option.max - option.min) / option.step!).round()
               : null,
-          label: option.valueString,
-          onChanged: (double value) {
-            setState(() {
-              option.value = value.toInt();
-              peripheral.handleSetOption(
-                name: option.name,
-                value: option.valueString,
-              );
-            });
-          },
-        ),
-      );
+      label: option.valueString,
+      onChanged: (double value) {
+        setState(() {
+          option.value = value.toInt();
+          peripheral.handleSetOption(
+            name: option.name,
+            value: option.valueString,
+          );
+        });
+      },
+    ),
+  );
 
   Widget _createFloatOption(FloatOption option) => ListTile(
-        title: _createTitle(option),
-        subtitle: Slider(
-          value: option.value,
-          min: option.min,
-          max: option.max,
-          divisions: option.step != null
+    title: _createTitle(option),
+    subtitle: Slider(
+      value: option.value,
+      min: option.min,
+      max: option.max,
+      divisions:
+          option.step != null
               ? ((option.max - option.min) / option.step!).round()
               : null,
-          label: option.valueString,
-          onChanged: (double value) {
-            setState(() {
-              option.value = value;
-              peripheral.handleSetOption(
-                name: option.name,
-                value: option.valueString,
-              );
-            });
-          },
-        ),
-      );
+      label: option.valueString,
+      onChanged: (double value) {
+        setState(() {
+          option.value = value;
+          peripheral.handleSetOption(
+            name: option.name,
+            value: option.valueString,
+          );
+        });
+      },
+    ),
+  );
 
   Widget _createOption(Option option) {
     switch (option.runtimeType) {
@@ -176,10 +176,11 @@ class OptionsScreenState extends State<OptionsScreen> {
         title: Text('Options'),
         centerTitle: true,
         leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            onPressed: () {
-              Navigator.pop(context);
-            }),
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.cached_rounded),

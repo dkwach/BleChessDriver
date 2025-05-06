@@ -15,7 +15,7 @@ dependencies:
   flutter_chess_board:
     git:
       url: https://github.com/dkwach/flutter_chess_board
-  ble_chess_driver:
+  ble_chess_peripheral_driver:
     path: ../
 
 dev_dependencies:

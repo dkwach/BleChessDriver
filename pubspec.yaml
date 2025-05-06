@@ -1,7 +1,7 @@
-name: ble_chess_driver
+name: ble_chess_peripheral_driver
 description: A Chessboard Driver written in pure Dart
 version: 0.0.10
-repository: https://github.com/dkwach/BleChessDriver
+repository: https://github.com/dkwach/chess_peripheral_driver
 
 environment:
   sdk: ">=3.0.0 <4.0.0"

@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:ble_backend/ble_connector.dart';
 import 'package:ble_backend/ble_peripheral.dart';
 import 'package:ble_backend_screens/ui/ui_consts.dart';
-import 'package:ble_chess_driver/ble_chess_driver.dart';
-import 'package:ble_chess_driver/chess_driver.dart';
 import 'package:ble_chess_example/options_screen.dart';
+import 'package:ble_chess_peripheral_driver/ble_chess_peripheral_driver.dart';
+import 'package:ble_chess_peripheral_driver/chess_peripheral_driver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -45,10 +45,7 @@ class RoundScreenState extends State<RoundScreen> {
   }
 
   void _showMessage(String msg) {
-    Fluttertoast.showToast(
-      msg: msg,
-      fontSize: 18.0,
-    );
+    Fluttertoast.showToast(msg: msg, fontSize: 18.0);
   }
 
   void _showError(String err) {
@@ -141,7 +138,8 @@ class RoundScreenState extends State<RoundScreen> {
     if (requestedMtu < maxStringSize) {
       bleConnector.disconnect();
       _showError(
-          'Mtu: $requestedMtu, is less than the required: ${maxStringSize}');
+        'Mtu: $requestedMtu, is less than the required: ${maxStringSize}',
+      );
       return;
     }
 
@@ -161,9 +159,7 @@ class RoundScreenState extends State<RoundScreen> {
       Feature.drawReason,
       Feature.option,
     ];
-    final variants = [
-      Variant.standard,
-    ];
+    final variants = [Variant.standard];
     peripheral = CppPeripheral(
       stringSerial: serial,
       features: features,
@@ -216,58 +212,49 @@ class RoundScreenState extends State<RoundScreen> {
   }
 
   Widget _buildChessBoardWidget() => ChessBoard(
-      controller: chessController,
-      boardColor: BoardColor.darkBrown,
-      boardOrientation: PlayerColor.white,
-      onMove: _handleCentralMove);
+        controller: chessController,
+        boardColor: BoardColor.darkBrown,
+        boardOrientation: PlayerColor.white,
+        onMove: _handleCentralMove,
+      );
 
   Widget _buildNewRoundButton() => FilledButton.icon(
-      icon: const Icon(Icons.refresh_rounded),
-      label: Text('New Round'),
-      onPressed: peripheral.isInitialized ? _beginNewRound : null);
+        icon: const Icon(Icons.refresh_rounded),
+        label: Text('New Round'),
+        onPressed: peripheral.isInitialized ? _beginNewRound : null,
+      );
 
   Widget _buildAutocompleteButton() => FilledButton.icon(
-      icon: const Icon(Icons.auto_awesome_rounded),
-      label: Text('Autocomplete'),
-      onPressed: peripheral.round.isStateSetible && !isAutocompleteOngoing
-          ? _handleAutocomplete
-          : null);
+        icon: const Icon(Icons.auto_awesome_rounded),
+        label: Text('Autocomplete'),
+        onPressed: peripheral.round.isStateSetible && !isAutocompleteOngoing
+            ? _handleAutocomplete
+            : null,
+      );
 
   Widget _buildControlButtons() => SizedBox(
         height: buttonHeight,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: _buildNewRoundButton(),
-            ),
+            Expanded(child: _buildNewRoundButton()),
             if (peripheral.isFeatureSupported(Feature.setState))
               const SizedBox(width: buttonsSplitter),
             if (peripheral.isFeatureSupported(Feature.setState))
-              Expanded(
-                child: _buildAutocompleteButton(),
-              ),
+              Expanded(child: _buildAutocompleteButton()),
           ],
         ),
       );
 
   Widget _buildPortrait() => Padding(
-        padding: EdgeInsets.symmetric(
-          vertical: screenPadding,
-        ),
+        padding: EdgeInsets.symmetric(vertical: screenPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: Center(
-                child: _buildChessBoardWidget(),
-              ),
-            ),
+            Expanded(child: Center(child: _buildChessBoardWidget())),
             const SizedBox(height: screenPortraitSplitter),
             Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: screenPadding,
-              ),
+              padding: EdgeInsets.symmetric(horizontal: screenPadding),
               child: _buildControlButtons(),
             ),
           ],
@@ -278,11 +265,7 @@ class RoundScreenState extends State<RoundScreen> {
         padding: const EdgeInsets.all(screenPadding),
         child: Row(
           children: [
-            Expanded(
-              child: Center(
-                child: _buildChessBoardWidget(),
-              ),
-            ),
+            Expanded(child: Center(child: _buildChessBoardWidget())),
             const SizedBox(width: screenLandscapeSplitter),
             Expanded(
               child: Align(
