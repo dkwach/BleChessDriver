@@ -1,6 +1,7 @@
-# BLE Chess Driver
+# Peripherial Chess Driver
 
-Play chess on physical device over BLE using [CPP](https://github.com/vovagorodok/chess_peripheral_protocol) protocol
+Play chess on physical device using [CPP](https://github.com/vovagorodok/chess_peripheral_protocol) protocol
+e.g. over BLE
 
 ## Usage
 Create `CppPeripheral` when peripheral connected and begin round only after peripheral initialized:
