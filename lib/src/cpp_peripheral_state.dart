@@ -45,16 +45,20 @@ class CppPeripheralState {
     context.msgController.add(msg);
   }
 
-  void sendUndoToCentral(String move) {
-    context.undoController.add(move);
-  }
-
   void sendMovedToCentral() {
     context.movedController.add(null);
   }
 
   void sendResignToCentral() {
     context.resignController.add(null);
+  }
+
+  void sendUndoOfferToCentral() {
+    context.undoOfferController.add(null);
+  }
+
+  void sendUndoOfferAckToCentral(bool ack) {
+    context.undoOfferAckController.add(ack);
   }
 
   void sendDrawOfferToCentral() {
@@ -124,12 +128,16 @@ class CppPeripheralState {
   }
 
   Future<void> handleCentralUndo({
-    required String move,
+    required String fen,
     String? lastMove,
     String? check,
     String? time,
   }) async {
     handleCentralUnexpected(Command.undo);
+  }
+
+  Future<void> handleCentralUndoOffer() async {
+    handleCentralUnexpected(Command.undoOffer);
   }
 
   Future<void> handleCentralDrawOffer() async {

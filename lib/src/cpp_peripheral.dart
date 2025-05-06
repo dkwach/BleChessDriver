@@ -49,9 +49,10 @@ class CppPeripheral implements Peripheral {
   final moveController = StreamController<String>();
   final errController = StreamController<String>();
   final msgController = StreamController<String>();
-  final undoController = StreamController<String>();
   final movedController = StreamController<void>();
   final resignController = StreamController<void>();
+  final undoOfferController = StreamController<void>();
+  final undoOfferAckController = StreamController<bool>();
   final drawOfferController = StreamController<void>();
   final drawOfferAckController = StreamController<bool>();
   final optionsUpdateController = StreamController<void>();
@@ -86,11 +87,13 @@ class CppPeripheral implements Peripheral {
   @override
   Stream<String> get msgStream => msgController.stream;
   @override
-  Stream<String> get undoStream => undoController.stream;
-  @override
   Stream<void> get movedStream => movedController.stream;
   @override
   Stream<void> get resignStream => resignController.stream;
+  @override
+  Stream<void> get undoOfferStream => undoOfferController.stream;
+  @override
+  Stream<bool> get undoOfferAckStream => undoOfferAckController.stream;
   @override
   Stream<void> get drawOfferStream => drawOfferController.stream;
   @override
@@ -164,17 +167,22 @@ class CppPeripheral implements Peripheral {
 
   @override
   Future<void> handleUndo({
-    required String move,
+    required String fen,
     String? lastMove,
     String? check,
     String? time,
   }) async {
     await state.handleCentralUndo(
-      move: move,
+      fen: fen,
       lastMove: lastMove,
       check: check,
       time: time,
     );
+  }
+
+  @override
+  Future<void> handleUndoOffer() async {
+    await state.handleCentralUndoOffer();
   }
 
   @override
@@ -247,9 +255,10 @@ class CppPeripheral implements Peripheral {
     moveController.close();
     errController.close();
     msgController.close();
-    undoController.close();
     movedController.close();
     resignController.close();
+    undoOfferController.close();
+    undoOfferAckController.close();
     drawOfferController.close();
     drawOfferAckController.close();
     optionsUpdateController.close();

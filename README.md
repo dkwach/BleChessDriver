@@ -53,8 +53,8 @@ final bleSerial = BleSerial(
 
 Call feature specific methods only if feature is supported by peripheral:
 ```dart
-if (peripheral.isFeatureSupported(Feature.undo)) {
-    peripheral.handleUndo(move: move);
+if (peripheral.isFeatureSupported(Feature.undoOffer)) {
+    peripheral.handleUndoOffer();
 }
 if (peripheral.isFeatureSupported(Feature.drawOffer)) {
     peripheral.handleDrawOffer();

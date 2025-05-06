@@ -28,12 +28,13 @@ abstract class Peripheral {
   Stream<String> get errStream;
   // msg feature
   Stream<String> get msgStream;
-  // undo feature
-  Stream<String> get undoStream;
   // moved feature
   Stream<void> get movedStream;
   // resign feature
   Stream<void> get resignStream;
+  // undo_offer feature
+  Stream<void> get undoOfferStream;
+  Stream<bool> get undoOfferAckStream;
   // draw_offer feature
   Stream<void> get drawOfferStream;
   Stream<bool> get drawOfferAckStream;
@@ -69,11 +70,13 @@ abstract class Peripheral {
   });
   // undo feature
   Future<void> handleUndo({
-    required String move,
+    required String fen,
     String? lastMove,
     String? check,
     String? time,
   });
+  // undo_offer feature
+  Future<void> handleUndoOffer();
   // draw_offer feature
   Future<void> handleDrawOffer();
   // get_state feature

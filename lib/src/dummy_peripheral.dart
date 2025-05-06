@@ -46,11 +46,13 @@ class DummyPeripheral implements Peripheral {
   @override
   Stream<String> get msgStream => Stream.empty();
   @override
-  Stream<String> get undoStream => Stream.empty();
-  @override
   Stream<void> get movedStream => Stream.empty();
   @override
   Stream<void> get resignStream => Stream.empty();
+  @override
+  Stream<void> get undoOfferStream => Stream.empty();
+  @override
+  Stream<bool> get undoOfferAckStream => Stream.empty();
   @override
   Stream<void> get drawOfferStream => Stream.empty();
   @override
@@ -92,11 +94,13 @@ class DummyPeripheral implements Peripheral {
   }) async {}
   @override
   Future<void> handleUndo({
-    required String move,
+    required String fen,
     String? lastMove,
     String? check,
     String? time,
   }) async {}
+  @override
+  Future<void> handleUndoOffer() async {}
   @override
   Future<void> handleDrawOffer() async {}
   @override
