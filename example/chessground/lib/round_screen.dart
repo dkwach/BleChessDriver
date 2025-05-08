@@ -68,23 +68,25 @@ class RoundScreenState extends State<RoundScreen> {
       lastMove = null;
       lastPos = null;
     });
-    _showChoicesPicker<Mode>(
-      context,
-      choices: Mode.values,
-      selectedItem: playMode,
-      labelBuilder: (t) => Text(t.name),
-      onSelectedItemChanged: (Mode value) {
-        setState(() {
-          playMode = value;
-        });
-      },
-    );
-    peripheral.handleBegin(
-      fen: fen,
-      variant: Variants.standard,
-      side: playMode == Mode.botPlay ? Sides.white : Sides.both,
-      lastMove: lastMove?.uci,
-    );
+    () async {
+      await _showChoicesPicker<Mode>(
+        context,
+        choices: Mode.values,
+        selectedItem: playMode,
+        labelBuilder: (t) => Text(t.name),
+        onSelectedItemChanged: (Mode value) {
+          setState(() {
+            playMode = value;
+          });
+        },
+      );
+      await peripheral.handleBegin(
+        fen: fen,
+        variant: Variants.standard,
+        side: playMode == Mode.botPlay ? Sides.white : Sides.both,
+        lastMove: lastMove?.uci,
+      );
+    }.call();
   }
 
   void _showMessage(String msg) {
@@ -156,7 +158,7 @@ class RoundScreenState extends State<RoundScreen> {
   void _handlePeripheralMove(String uci) {
     final move = NormalMove.fromUci(uci);
     if (position.isLegal(move)) {
-      _playMove(move);
+      playMode == Mode.botPlay ? _onUserMoveAgainstBot(move) : _playMove(move);
     } else {
       peripheral.handleReject();
       _showMessage('Rejected');
@@ -243,14 +245,14 @@ class RoundScreenState extends State<RoundScreen> {
     }
   }
 
-  void _showChoicesPicker<T extends Enum>(
+  Future<void> _showChoicesPicker<T extends Enum>(
     BuildContext context, {
     required List<T> choices,
     required T selectedItem,
     required Widget Function(T choice) labelBuilder,
     required void Function(T choice) onSelectedItemChanged,
-  }) {
-    showDialog<void>(
+  }) async {
+    await showDialog<void>(
       context: context,
       builder: (context) {
         return AlertDialog(
@@ -270,12 +272,6 @@ class RoundScreenState extends State<RoundScreen> {
               );
             }).toList(growable: false),
           ),
-          actions: [
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
         );
       },
     );
