@@ -13,6 +13,7 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'board_theme.dart';
+import 'peripheral_fen.dart';
 
 class RoundScreen extends StatefulWidget {
   RoundScreen({
@@ -160,8 +161,10 @@ class RoundScreenState extends State<RoundScreen> {
     if (position.isLegal(move)) {
       playMode == Mode.botPlay ? _onUserMoveAgainstBot(move) : _playMove(move);
     } else {
-      peripheral.handleReject();
-      _showMessage('Rejected');
+      setState(() {
+        peripheral.handleReject();
+        _showMessage('Rejected');
+      });
     }
   }
 
@@ -419,6 +422,74 @@ class RoundScreenState extends State<RoundScreen> {
   //       onMove: _handleCentralMove,
   //     );
 
+  IMap<Square, SquareHighlight> _createSquareHighlights() {
+    const Color rejectedMoveColor = Color.fromRGBO(199, 0, 109, 0.41);
+    const Color pieceRemoveColor = Color.fromRGBO(255, 60, 60, 0.50);
+    const Color pieceAddColor = Color.fromRGBO(60, 255, 60, 0.50);
+    const Color pieceReplaceColor = Color.fromRGBO(60, 60, 255, 0.50);
+    IMap<Square, SquareHighlight> highlights = IMap();
+    if (peripheral.round.rejectedMove != null) {
+      final rejectedMove = NormalMove.fromUci(peripheral.round.rejectedMove!);
+      highlights = highlights.add(
+          rejectedMove.from,
+          SquareHighlight(
+            details: HighlightDetails(
+              solidColor: rejectedMoveColor,
+            ),
+          ));
+      highlights = highlights.add(
+          rejectedMove.to,
+          SquareHighlight(
+            details: HighlightDetails(
+              solidColor: rejectedMoveColor,
+            ),
+          ));
+    }
+    if (!peripheral.round.isStateSynchronized && peripheral.round.fen != null) {
+      final peripheralPieces = readPeripheralFen(peripheral.round.fen!);
+      final centralPieces = readFen(fen);
+      for (final entry in centralPieces.entries) {
+        final square = entry.key;
+        final centralPiece = entry.value;
+        final peripheralPiece = peripheralPieces[square];
+        if (peripheralPiece == null) {
+          highlights = highlights.add(
+              square,
+              SquareHighlight(
+                details: HighlightDetails(
+                  solidColor: pieceAddColor,
+                ),
+              ));
+        } else if ((peripheralPiece.role != null &&
+                peripheralPiece.role != centralPiece.role) ||
+            (peripheralPiece.color != null &&
+                peripheralPiece.color != centralPiece.color)) {
+          highlights = highlights.add(
+              square,
+              SquareHighlight(
+                details: HighlightDetails(
+                  solidColor: pieceReplaceColor,
+                ),
+              ));
+        }
+      }
+      for (final entry in peripheralPieces.entries) {
+        final square = entry.key;
+        final centralPiece = centralPieces[square];
+        if (centralPiece == null) {
+          highlights = highlights.add(
+              square,
+              SquareHighlight(
+                details: HighlightDetails(
+                  solidColor: pieceRemoveColor,
+                ),
+              ));
+        }
+      }
+    }
+    return highlights;
+  }
+
   Widget _buildChessBoardWidget() => Center(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -456,7 +527,8 @@ class RoundScreenState extends State<RoundScreen> {
               ),
               orientation: orientation,
               fen: fen,
-              lastMove: lastMove,
+              lastMove: peripheral.round.isStateSynchronized ? lastMove : null,
+              squareHighlights: _createSquareHighlights(),
               game: GameData(
                 playerSide: playMode == Mode.botPlay
                     ? PlayerSide.white
@@ -466,7 +538,9 @@ class RoundScreenState extends State<RoundScreen> {
                 validMoves: validMoves,
                 sideToMove:
                     position.turn == Side.white ? Side.white : Side.black,
-                isCheck: position.isCheck,
+                isCheck: peripheral.round.isStateSynchronized
+                    ? position.isCheck
+                    : false,
                 promotionMove: promotionMove,
                 onMove: playMode == Mode.botPlay
                     ? _onUserMoveAgainstBot
