@@ -68,10 +68,21 @@ class RoundScreenState extends State<RoundScreen> {
       lastMove = null;
       lastPos = null;
     });
+    _showChoicesPicker<Mode>(
+      context,
+      choices: Mode.values,
+      selectedItem: playMode,
+      labelBuilder: (t) => Text(t.name),
+      onSelectedItemChanged: (Mode value) {
+        setState(() {
+          playMode = value;
+        });
+      },
+    );
     peripheral.handleBegin(
       fen: fen,
       variant: Variants.standard,
-      side: Sides.both,
+      side: playMode == Mode.botPlay ? Sides.white : Sides.both,
       lastMove: lastMove?.uci,
     );
   }
@@ -310,9 +321,9 @@ class RoundScreenState extends State<RoundScreen> {
         if (isPremove == true) {
           premove = null;
         }
+        _handleCentralMove(move);
       });
     }
-    _handleCentralMove(move);
   }
 
   void _onUserMoveAgainstBot(NormalMove move, {isDrop}) async {
@@ -329,6 +340,7 @@ class RoundScreenState extends State<RoundScreen> {
         validMoves = IMap(const {});
         promotionMove = null;
       });
+      _handleCentralMove(move);
       await _playBlackMove();
       _tryPlayPremove();
     }
@@ -365,6 +377,7 @@ class RoundScreenState extends State<RoundScreen> {
         validMoves = makeLegalMoves(position);
       });
       lastPos = position;
+      _handleCentralMove(mv);
     }
   }
 
